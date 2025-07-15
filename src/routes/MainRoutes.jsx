@@ -5,6 +5,7 @@ import MainLayout from 'layout/MainLayout';
 import Loadable from 'ui-component/Loadable';
 
 // dashboard routing
+const CanvasPage = Loadable(lazy(() => import('views/canvas/index.jsx')));
 const DashboardDefault = Loadable(lazy(() => import('views/dashboard/Default')));
 
 // utilities routing
@@ -88,7 +89,11 @@ const MainRoutes = {
     { path: '/rtmonitoring/:machineId', element: <MonitoringDetails /> },
     { path: '/himonitoring/:machineId', element: <MonitoringDetailsHistory /> },
 
-    { path: '/user-roles', element: <UserRoles /> }
+    { path: '/user-roles', element: <UserRoles /> },
+    {
+      path: '/canvas',
+      element: <CanvasPage />
+    }
   ]
 };
 

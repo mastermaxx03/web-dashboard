@@ -23,7 +23,7 @@ const dashboard = {
       id: 'default',
       title: 'Dashboard',
       type: 'item',
-      url: '/dashboard',
+      url: '/canvas',
       icon: icons.IconDashboard,
       breadcrumbs: false
     },
