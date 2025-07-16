@@ -104,7 +104,7 @@ export default function CanvasPage() {
     }
     const newItem = {
       name: newItemName.trim(),
-      color: getRandomColor() // Now uses the curated light colors
+      color: getRandomColor()
     };
     setPanelItems((prevItems) => [...prevItems, newItem]);
     setCustomItemCounts((prevCounts) => ({
@@ -114,9 +114,7 @@ export default function CanvasPage() {
     setNewItemName('');
   };
 
-  const onConnectStart = useCallback((event, { nodeId, handleId, handleType }) => {
-    // console.log('Connect started from:', { nodeId, handleId, handleType, eventX: event.clientX, eventY: event.clientY });
-  }, []);
+  const onConnectStart = useCallback((event, { nodeId, handleId, handleType }) => {}, []);
 
   const onConnect = useCallback((params) => {
     currentConnection.current = params;
@@ -232,10 +230,7 @@ export default function CanvasPage() {
             newLabel = `${nodeData.name} ${currentCount}`;
             return { ...prevCounts, [nodeData.name]: updatedCount };
           });
-          if (newLabel === nodeData.name) {
-            // This condition seems redundant after the above logic
-            newLabel = `${nodeData.name} ${(customItemCounts[nodeData.name] || 0) + 1}`;
-          }
+
           break;
       }
 
