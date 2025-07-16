@@ -6,13 +6,12 @@ import { Box, Paper, Typography, IconButton, Slide, TextField, Button, Menu, Men
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
-import FullscreenExitIcon from '@mui/icons-material/FullscreenExit'; // CORRECTED IMPORT
-import AccountTreeIcon from '@mui/icons-material/AccountTree'; // CORRECTED IMPORT
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import dagre from 'dagre';
 
 import 'reactflow/dist/style.css';
 
-// --- Dagre Auto-Layout (No changes here) ---
 const dagreGraph = new dagre.graphlib.Graph();
 dagreGraph.setDefaultEdgeLabel(() => ({}));
 const nodeWidth = 172;
@@ -47,13 +46,25 @@ const initialPanelItems = [
   { name: 'Compressor', color: '#90caf9' }
 ];
 
+const panelColors = [
+  '#FFCDD2', // Light Red
+  '#E1BEE7', // Light Purple
+  '#C5CAE9', // Light Indigo
+  '#BBDEFB', // Light Blue
+  '#B2EBF2', // Light Cyan
+  '#C8E6C9', // Light Green
+  '#FFF9C4', // Light Yellow
+  '#FFE0B2', // Light Orange
+  '#D7CCC8', // Light Brown
+  '#F5F5F5', // Light Grey
+  '#CFD8DC', // Light Blue Grey
+  '#F8BBD0', // Pink
+  '#D1C4E9' // Deep Purple A100
+];
+
 const getRandomColor = () => {
-  const letters = '0123456789ABCDEF';
-  let color = '#';
-  for (let i = 0; i < 6; i++) {
-    color += letters[Math.floor(Math.random() * 16)];
-  }
-  return color;
+  const randomIndex = Math.floor(Math.random() * panelColors.length);
+  return panelColors[randomIndex];
 };
 
 export default function CanvasPage() {
@@ -65,7 +76,7 @@ export default function CanvasPage() {
   const [isFocusMode, setFocusMode] = useState(false);
 
   const [panelItems, setPanelItems] = useState(initialPanelItems);
-  const [newItemName, setNewItemName] = useState(''); // Corrected initialization
+  const [newItemName, setNewItemName] = useState('');
 
   const [transformerCount, setTransformerCount] = useState(0);
   const [feederCount, setFeederCount] = useState(0);
@@ -93,7 +104,7 @@ export default function CanvasPage() {
     }
     const newItem = {
       name: newItemName.trim(),
-      color: getRandomColor()
+      color: getRandomColor() // Now uses the curated light colors
     };
     setPanelItems((prevItems) => [...prevItems, newItem]);
     setCustomItemCounts((prevCounts) => ({
@@ -140,7 +151,7 @@ export default function CanvasPage() {
       if (cableType === 'HT Cable') {
         edgeLabel = 'HT Cable';
         connectionCounts.current[connectionKey] = 0;
-        edgeStyle = { strokeWidth: 2 };
+        edgeStyle = { strokeWidth: 2 }; // HT Cable back to default React Flow style
       } else if (cableType === 'Normal Cable') {
         edgeLabel = '';
 
@@ -222,6 +233,7 @@ export default function CanvasPage() {
             return { ...prevCounts, [nodeData.name]: updatedCount };
           });
           if (newLabel === nodeData.name) {
+            // This condition seems redundant after the above logic
             newLabel = `${nodeData.name} ${(customItemCounts[nodeData.name] || 0) + 1}`;
           }
           break;
@@ -356,8 +368,7 @@ export default function CanvasPage() {
                 }}
                 anchorReference="anchorPosition"
                 anchorPosition={{ top: connectionMenu.y + 10, left: connectionMenu.x + 10 }}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
               >
                 <MenuItem onClick={() => handleCableTypeSelection('HT Cable')}>HT Cable</MenuItem>
                 <MenuItem onClick={() => handleCableTypeSelection('Normal Cable')}>Normal Cable</MenuItem>
