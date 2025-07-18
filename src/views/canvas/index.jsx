@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import ReactFlow, { ReactFlowProvider, addEdge, useNodesState, useEdgesState, Controls } from 'reactflow';
 import CustomNode from './CustomNode';
-
+import InspectorPanel from './InspectorPanel';
 import { Box, Paper, Typography, IconButton, Slide, TextField, Button, Menu, MenuItem } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -32,8 +32,11 @@ const getLayoutedElements = (nodes, edges, direction = 'TB') => {
 };
 // ---------------------------------
 
-let id = 0;
-const getId = () => `dndnode_${id++}`;
+let nodeId = 0;
+const getNodeId = () => `${nodeId++}`;
+
+let edgeId = 0;
+const getEdgeId = () => `e_${edgeId++}`;
 
 const nodeTypes = {
   custom: CustomNode
@@ -86,6 +89,24 @@ export default function CanvasPage() {
   const [connectionMenu, setConnectionMenu] = useState(null);
   const currentConnection = useRef(null);
   const connectionCounts = useRef({});
+  const [selectedNode, setSelectedNode] = useState(null);
+  const handleStyleChange = (nodeId, style) => {
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.id === nodeId) {
+          // Return a new node object to ensure a re-render
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              ...style
+            }
+          };
+        }
+        return node;
+      })
+    );
+  };
 
   const handleToggleFocusMode = () => setFocusMode((prev) => !prev);
 
@@ -149,7 +170,7 @@ export default function CanvasPage() {
       if (cableType === 'HT Cable') {
         edgeLabel = 'HT Cable';
         connectionCounts.current[connectionKey] = 0;
-        edgeStyle = { strokeWidth: 2 }; // HT Cable back to default React Flow style
+        edgeStyle = { strokeWidth: 2 };
       } else if (cableType === 'Normal Cable') {
         edgeLabel = '';
 
@@ -174,7 +195,7 @@ export default function CanvasPage() {
       }
 
       const newEdge = {
-        id: `e-${source}-${target}-${getId()}`,
+        id: getEdgeId(),
         source: source,
         sourceHandle: sourceHandle,
         target: target,
@@ -202,49 +223,47 @@ export default function CanvasPage() {
       event.preventDefault();
       const nodeData = JSON.parse(event.dataTransfer.getData('application/reactflow'));
       if (!nodeData) return;
+
       const position = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      let newLabel = '';
+      let newId = getNodeId(); // Get the ID upfront
 
-      let newLabel = nodeData.name;
-      let currentCount = 0;
-
+      // This new logic correctly calculates the label BEFORE creating the node
       switch (nodeData.name) {
         case 'Transformer':
-          setTransformerCount((prev) => prev + 1);
-          currentCount = transformerCount + 1;
-          newLabel = `${nodeData.name} ${currentCount}`;
+          newLabel = `Transformer ${transformerCount + 1}`;
+          setTransformerCount((c) => c + 1);
           break;
         case 'Feeder':
-          setFeederCount((prev) => prev + 1);
-          currentCount = feederCount + 1;
-          newLabel = `${nodeData.name} ${currentCount}`;
+          newLabel = `Feeder ${feederCount + 1}`;
+          setFeederCount((c) => c + 1);
           break;
         case 'RMU':
-          setRmuCount((prev) => prev + 1);
-          currentCount = rmuCount + 1;
-          newLabel = `${nodeData.name} ${currentCount}`;
+          newLabel = `RMU ${rmuCount + 1}`;
+          setRmuCount((c) => c + 1);
           break;
         default:
-          setCustomItemCounts((prevCounts) => {
-            const updatedCount = (prevCounts[nodeData.name] || 0) + 1;
-            currentCount = updatedCount;
-            newLabel = `${nodeData.name} ${currentCount}`;
-            return { ...prevCounts, [nodeData.name]: updatedCount };
-          });
-
+          const newCount = (customItemCounts[nodeData.name] || 0) + 1;
+          newLabel = `${nodeData.name} ${newCount}`;
+          setCustomItemCounts((counts) => ({ ...counts, [nodeData.name]: newCount }));
           break;
       }
 
       const newNode = {
-        id: getId(),
+        id: newId,
         type: 'custom',
         position,
-        data: { label: newLabel, color: nodeData.color }
+        data: {
+          label: newLabel,
+          color: nodeData.color,
+          deviceId: `DEV-${newId}`,
+          deviceName: newLabel
+        }
       };
       setNodes((nds) => nds.concat(newNode));
     },
     [reactFlowInstance, setNodes, transformerCount, feederCount, rmuCount, customItemCounts]
   );
-
   const onDragStart = (event, nodeData) => {
     event.dataTransfer.setData('application/reactflow', JSON.stringify(nodeData));
     event.dataTransfer.effectAllowed = 'move';
@@ -288,7 +307,32 @@ export default function CanvasPage() {
                   </Box>
                 ))}
               </Box>
+              <Button
+                variant="outlined"
+                sx={
+                  {
+                    /* ...styles... */
+                  }
+                }
+                onClick={() => {
+                  // Create a simplified list of just the info you want to see
+                  const simplifiedNodes = nodes.map((node) => ({
+                    id: node.id,
+                    deviceId: node.data.deviceId,
+                    deviceName: node.data.deviceName
+                  }));
 
+                  // Log the new, cleaner list to the console
+                  console.log('--- Simplified Device List ---');
+                  console.table(simplifiedNodes); // .table() provides a nice format
+
+                  console.log('--- Full Node & Edge Data ---');
+                  console.log('NODES:', nodes);
+                  console.log('EDGES:', edges);
+                }}
+              >
+                Print code
+              </Button>
               <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #e0e0e0' }}>
                 <Typography variant="subtitle1" gutterBottom>
                   Add Custom
@@ -336,14 +380,27 @@ export default function CanvasPage() {
             onDrop={onDrop}
             onDragOver={onDragOver}
             nodeTypes={nodeTypes}
+            onNodeClick={(event, node) => setSelectedNode(node)}
+            onPaneClick={() => setSelectedNode(null)}
           >
-            <IconButton
-              onClick={handleToggleFocusMode}
-              title="Toggle Focus Mode"
-              sx={{ position: 'absolute', top: 10, right: 10, zIndex: 10, backgroundColor: 'white', boxShadow: 1 }}
-            >
-              {isFocusMode ? <FullscreenExitIcon /> : <FullscreenIcon />}
-            </IconButton>
+            {!selectedNode && (
+              <>
+                <IconButton
+                  onClick={handleToggleFocusMode}
+                  title="Toggle Focus Mode"
+                  sx={{ position: 'absolute', top: 10, right: 10, zIndex: 10, backgroundColor: 'white', boxShadow: 1 }}
+                >
+                  {isFocusMode ? <FullscreenExitIcon /> : <FullscreenIcon />}
+                </IconButton>
+                <IconButton
+                  onClick={onLayout}
+                  title="Auto-Layout"
+                  sx={{ position: 'absolute', top: 50, right: 10, zIndex: 10, backgroundColor: 'white', boxShadow: 1 }}
+                >
+                  <AccountTreeIcon />
+                </IconButton>
+              </>
+            )}
             <IconButton
               onClick={onLayout}
               title="Auto-Layout"
@@ -372,6 +429,7 @@ export default function CanvasPage() {
           </ReactFlow>
         </ReactFlowProvider>
       </Box>
+      <InspectorPanel node={selectedNode} onStyleChange={handleStyleChange} />
     </Box>
   );
 }
