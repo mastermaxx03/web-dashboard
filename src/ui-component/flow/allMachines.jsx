@@ -8,7 +8,7 @@ import { FiMaximize, FiMinimize } from 'react-icons/fi'; // Add this for icons
 
 import { COLORS, nodeWidth, nodeHeight } from '../../utils/flowConfig';
 
-const S3_HIERARCHY_URL = 'https://iot-poc-001.s3.ap-south-1.amazonaws.com/hierarchyData.json';
+const S3_HIERARCHY_URL = 'https://iot-poc-001.s3.ap-south-1.amazonaws.com/hierarchyData2.json';
 
 const dagreGraph = new dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
 dagreGraph.setGraph({ rankdir: 'TB' }); // Top to Bottom

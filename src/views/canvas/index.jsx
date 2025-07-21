@@ -72,6 +72,7 @@ const getRandomColor = () => {
 
 export default function CanvasPage() {
   const reactFlowWrapper = useRef(null);
+  const isDraggingFromSidebar = useRef(false);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
@@ -94,14 +95,7 @@ export default function CanvasPage() {
     setNodes((nds) =>
       nds.map((node) => {
         if (node.id === nodeId) {
-          // Return a new node object to ensure a re-render
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              ...style
-            }
-          };
+          return { ...node, data: { ...node.data, ...style } };
         }
         return node;
       })
@@ -109,13 +103,53 @@ export default function CanvasPage() {
   };
 
   const handleToggleFocusMode = () => setFocusMode((prev) => !prev);
+  //there is mismatch in json file which has been corrected in the code
+  useEffect(() => {
+    const loadInitialDiagram = async () => {
+      try {
+        console.log('1. Attempting to fetch data...');
+        const response = await fetch('https://iot-poc-001.s3.ap-south-1.amazonaws.com/hierarchyData3.json');
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('2. Data fetched and parsed successfully:', data);
+
+        if (data && data.nodes && data.edges) {
+          const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(data.nodes, data.edges);
+          console.log('3. Setting nodes and edges to state.');
+          setNodes(layoutedNodes);
+          setEdges(layoutedEdges);
+        } else {
+          console.error("Data is valid JSON but is missing 'nodes' or 'edges' arrays.");
+        }
+      } catch (error) {
+        console.error('CRITICAL ERROR: Failed to load or process diagram data:', error);
+      }
+    };
+
+    loadInitialDiagram();
+  }, [setNodes, setEdges]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') setFocusMode(false);
+      if (event.key === 'Escape') {
+        // This exits focus mode
+        setFocusMode(false);
+
+        // This is the key line that hides the inspector panel
+        setSelectedNode(null);
+      }
     };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+
+    // Cleanup function to remove the listener when the component unmounts
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   const handleAddCustomItem = () => {
@@ -135,24 +169,35 @@ export default function CanvasPage() {
     setNewItemName('');
   };
 
-  const onConnectStart = useCallback((event, { nodeId, handleId, handleType }) => {}, []);
+  const onConnectStart = useCallback((event, params) => {
+    // Prevent starting a connection if dragging a new node from the sidebar
+    if (isDraggingFromSidebar.current) {
+      return;
+    }
+    // Save the starting point of the connection
+    currentConnection.current = params;
+  }, []);
 
   const onConnect = useCallback((params) => {
     currentConnection.current = params;
   }, []);
 
   const onConnectEnd = useCallback((event) => {
-    if (currentConnection.current) {
+    // Add this check to prevent the menu from opening after a sidebar drag
+    if (isDraggingFromSidebar.current) {
+      return;
+    }
+
+    if (currentConnection.current && event.target.classList.contains('react-flow__pane')) {
       setConnectionMenu({
         x: event.clientX,
         y: event.clientY
       });
     } else {
-      setConnectionMenu(null);
+      // Clear the connection if it's not finished on the pane
       currentConnection.current = null;
     }
   }, []);
-
   const handleCableTypeSelection = useCallback(
     (cableType) => {
       if (!currentConnection.current) {
@@ -221,6 +266,7 @@ export default function CanvasPage() {
   const onDrop = useCallback(
     (event) => {
       event.preventDefault();
+      isDraggingFromSidebar.current = false;
       const nodeData = JSON.parse(event.dataTransfer.getData('application/reactflow'));
       if (!nodeData) return;
 
@@ -265,6 +311,7 @@ export default function CanvasPage() {
     [reactFlowInstance, setNodes, transformerCount, feederCount, rmuCount, customItemCounts]
   );
   const onDragStart = (event, nodeData) => {
+    isDraggingFromSidebar.current = true;
     event.dataTransfer.setData('application/reactflow', JSON.stringify(nodeData));
     event.dataTransfer.effectAllowed = 'move';
   };
@@ -385,29 +432,18 @@ export default function CanvasPage() {
           >
             {!selectedNode && (
               <>
-                <IconButton
-                  onClick={handleToggleFocusMode}
-                  title="Toggle Focus Mode"
-                  sx={{ position: 'absolute', top: 10, right: 10, zIndex: 10, backgroundColor: 'white', boxShadow: 1 }}
-                >
-                  {isFocusMode ? <FullscreenExitIcon /> : <FullscreenIcon />}
-                </IconButton>
-                <IconButton
-                  onClick={onLayout}
-                  title="Auto-Layout"
-                  sx={{ position: 'absolute', top: 50, right: 10, zIndex: 10, backgroundColor: 'white', boxShadow: 1 }}
-                >
-                  <AccountTreeIcon />
-                </IconButton>
+                <>
+                  <IconButton
+                    onClick={handleToggleFocusMode}
+                    title="Toggle Focus Mode"
+                    sx={{ position: 'absolute', top: 10, right: 10, zIndex: 10, backgroundColor: 'white', boxShadow: 1 }}
+                  >
+                    {isFocusMode ? <FullscreenExitIcon /> : <FullscreenIcon />}
+                  </IconButton>
+                </>
               </>
             )}
-            <IconButton
-              onClick={onLayout}
-              title="Auto-Layout"
-              sx={{ position: 'absolute', top: 50, right: 10, zIndex: 10, backgroundColor: 'white', boxShadow: 1 }}
-            >
-              <AccountTreeIcon />
-            </IconButton>
+
             <Controls showLock={false} />
 
             {/* Cable Type Selection Menu */}
