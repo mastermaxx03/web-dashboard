@@ -3,9 +3,12 @@ import { lazy } from 'react';
 // project imports
 import MainLayout from 'layout/MainLayout';
 import Loadable from 'ui-component/Loadable';
+import Canvas2Page from '../views/canvas2';
 
 // dashboard routing
 const CanvasPage = Loadable(lazy(() => import('views/canvas/index.jsx')));
+const Canvas2 = Loadable(lazy(() => import('views/canvas2/index.jsx')));
+
 const DashboardDefault = Loadable(lazy(() => import('views/dashboard/Default')));
 
 // utilities routing
@@ -93,6 +96,10 @@ const MainRoutes = {
     {
       path: '/canvas',
       element: <CanvasPage />
+    },
+    {
+      path: '/canvas2',
+      element: <Canvas2Page />
     }
   ]
 };

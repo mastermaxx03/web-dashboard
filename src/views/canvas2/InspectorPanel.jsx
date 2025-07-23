@@ -40,7 +40,7 @@ export default function InspectorPanel({ node, onStyleChange }) {
       }}
     >
       <Typography variant="h5" gutterBottom>
-        Properties
+        Style
       </Typography>
 
       {/* TextFields with all necessary props restored */}
