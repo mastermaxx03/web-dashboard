@@ -1,8 +1,9 @@
 import { FaExternalLinkAlt } from 'react-icons/fa';
 import React, { useEffect, useState } from 'react';
-import { Box, Paper, Typography, Slider, Select, MenuItem, FormControl, InputLabel, TextField, IconButton } from '@mui/material';
+import { Box, Paper, Typography, Slider, Select, MenuItem, FormControl, InputLabel, TextField, IconButton, Tooltip } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { SketchPicker } from 'react-color';
+import { DeviceIcon, iconList } from './iconLibrary';
 
 const darkBorderColors = ['#000000', '#424242', '#B71C1C', '#1A237E', '#004D40', '#1B5E20'];
 
@@ -60,7 +61,27 @@ export default function InspectorPanel({ node, onStyleChange, onClose }) {
           <Typography variant="body2">More Details</Typography>
         </Box>
       </a>
-
+      {/*icon picker section*/}
+      <Typography variant="subtitle1" sx={{ mt: 2 }}>
+        Device Icon
+      </Typography>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '10px', p: 1, border: '1px solid #ddd', borderRadius: '4px' }}>
+        {iconList.map((iconName) => (
+          <Tooltip title={iconName} key={iconName}>
+            <IconButton
+              onClick={() => handleChange('icon', iconName)}
+              sx={{
+                fontSize: '24px',
+                color: 'text.primary',
+                // This line highlights the currently selected icon
+                backgroundColor: node.data.icon === iconName ? 'action.selected' : 'transparent'
+              }}
+            >
+              <DeviceIcon iconName={iconName} />
+            </IconButton>
+          </Tooltip>
+        ))}
+      </Box>
       {/* TextFields with all necessary props restored */}
       <TextField
         label="Device Name"

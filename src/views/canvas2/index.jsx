@@ -146,7 +146,36 @@ export default function CanvasPage() {
           setFeederCount(fCount);
           setRmuCount(rCount);
           setCustomItemCounts(cCounts);
-          const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(data.nodes, data.edges);
+          const nodesWithDefaults = data.nodes.map((node) => {
+            // If the node from the JSON already has an icon, don't overwrite it.
+            if (node.data.icon) {
+              return node;
+            }
+            let defaultIcon = 'Custom'; // Default for any node that doesn't match a rule
+
+            // Assign specific icons based on the device name
+            if (node.data.deviceName.includes('Transformer')) {
+              defaultIcon = 'Transformer';
+            } else if (node.data.deviceName.includes('RMU')) {
+              defaultIcon = 'RMU';
+            } else if (node.data.deviceName.includes('Feeder')) {
+              defaultIcon = 'Feeder';
+            } else if (node.data.deviceName.includes('Compressor')) {
+              defaultIcon = 'Compressor';
+            }
+            // You can add more 'else if' rules here for other device types
+
+            // Return the node with the new icon property in its data
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                icon: defaultIcon
+              }
+            };
+          });
+
+          const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodesWithDefaults, data.edges);
           setNodes(layoutedNodes);
           setEdges(layoutedEdges);
         } else {
