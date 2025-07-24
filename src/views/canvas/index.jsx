@@ -107,6 +107,7 @@ export default function CanvasPage() {
         const data = await response.json();
         if (data && data.nodes && data.edges) {
           let maxNodeId = -1;
+          let maxEdgeId = -1;
           let tCount = 0,
             fCount = 0,
             rCount = 0;
@@ -127,7 +128,14 @@ export default function CanvasPage() {
               }
             }
           });
+          data.edges.forEach((edge) => {
+            const numericId = parseInt(edge.id.split('_')[1], 10);
+            if (!isNaN(numericId) && numericId > maxEdgeId) {
+              maxEdgeId = numericId;
+            }
+          });
           nodeIdCounter = maxNodeId + 1;
+          edgeIdCounter = maxEdgeId + 1;
           setTransformerCount(tCount);
           setFeederCount(fCount);
           setRmuCount(rCount);
