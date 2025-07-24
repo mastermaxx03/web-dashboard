@@ -7,7 +7,7 @@ function CustomNode({ data, selected }) {
   const borderWidth = data.borderWidth ?? 1;
   const borderStyle = data.borderStyle || 'solid';
   const borderColor = data.borderColor || '#1a192b';
-  const statusColor = data.status === 'on' ? '#4CAF50' : '#F44336';
+  const statusColor = data.isActive === true ? '#4CAF50' : '#F44336';
 
   return (
     <Paper

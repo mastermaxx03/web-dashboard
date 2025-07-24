@@ -87,6 +87,9 @@ export default function CanvasPage() {
   const currentConnection = useRef(null);
   const connectionCounts = useRef({});
   const [selectedNode, setSelectedNode] = useState(null);
+  const handlePanelClose = () => {
+    setSelectedNode(null);
+  };
   const handleStyleChange = (nodeId, style) => {
     setNodes((nds) =>
       nds.map((node) => {
@@ -103,7 +106,7 @@ export default function CanvasPage() {
   useEffect(() => {
     const loadInitialDiagram = async () => {
       try {
-        const response = await fetch('https://iot-poc-001.s3.ap-south-1.amazonaws.com/hierarchyData3.json');
+        const response = await fetch('https://iot-poc-001.s3.ap-south-1.amazonaws.com/hierarchyData4.json');
         const data = await response.json();
         if (data && data.nodes && data.edges) {
           let maxNodeId = -1;
@@ -216,7 +219,6 @@ export default function CanvasPage() {
         y: event.clientY
       });
     } else {
-      // Clear the connection if it's not finished on the pane
       currentConnection.current = null;
     }
   }, []);
@@ -229,13 +231,14 @@ export default function CanvasPage() {
       }
 
       const { source, sourceHandle, target, targetHandle } = currentConnection.current;
-
+      let voltageRating = '';
       let edgeLabel = '';
       let edgeStyle = {};
       const connectionKey = `${source}-${target}`;
 
       if (cableType === 'HT Cable') {
         edgeLabel = 'HT Cable';
+        voltageRating = 'Will be fetched from json file';
         connectionCounts.current[connectionKey] = 0;
         edgeStyle = { strokeWidth: 2 };
       } else if (cableType === 'Normal Cable') {
@@ -450,7 +453,6 @@ export default function CanvasPage() {
             onDragOver={onDragOver}
             nodeTypes={nodeTypes}
             onNodeClick={(event, node) => setSelectedNode(node)}
-            onPaneClick={() => setSelectedNode(null)}
           >
             {!selectedNode && (
               <>
@@ -487,7 +489,7 @@ export default function CanvasPage() {
           </ReactFlow>
         </ReactFlowProvider>
       </Box>
-      <InspectorPanel node={selectedNode} onStyleChange={handleStyleChange} />
+      <InspectorPanel node={selectedNode} onStyleChange={handleStyleChange} onClose={handlePanelClose} />
     </Box>
   );
 }

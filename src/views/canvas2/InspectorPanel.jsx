@@ -1,11 +1,12 @@
 import { FaExternalLinkAlt } from 'react-icons/fa';
 import React, { useEffect, useState } from 'react';
-import { Box, Paper, Typography, Slider, Select, MenuItem, FormControl, InputLabel, TextField } from '@mui/material';
+import { Box, Paper, Typography, Slider, Select, MenuItem, FormControl, InputLabel, TextField, IconButton } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { SketchPicker } from 'react-color';
 
 const darkBorderColors = ['#000000', '#424242', '#B71C1C', '#1A237E', '#004D40', '#1B5E20'];
 
-export default function InspectorPanel({ node, onStyleChange }) {
+export default function InspectorPanel({ node, onStyleChange, onClose }) {
   if (!node) return null;
 
   const [localDeviceName, setLocalDeviceName] = useState(node.data.deviceName || '');
@@ -40,12 +41,25 @@ export default function InspectorPanel({ node, onStyleChange }) {
         overflowY: 'auto'
       }}
     >
-      <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        Properties
-        <a href={`/canvas2/device-properties/${node.data.deviceId}`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
-          <FaExternalLinkAlt size="16px" />
-        </a>
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h5" gutterBottom sx={{ mb: 0 }}>
+          Properties
+        </Typography>
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </Box>
+      <a
+        href={`/canvas2/device-properties/${node.data.deviceId}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ textDecoration: 'none' }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, color: 'primary.main', cursor: 'pointer' }}>
+          <FaExternalLinkAlt size="14px" />
+          <Typography variant="body2">More Details</Typography>
+        </Box>
+      </a>
 
       {/* TextFields with all necessary props restored */}
       <TextField
