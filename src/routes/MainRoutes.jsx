@@ -34,6 +34,7 @@ const MonitoringDetails = Loadable(lazy(() => import('views/monitoring-details')
 const MonitoringDetailsHistory = Loadable(lazy(() => import('views/monitoring-details-history')));
 
 const UserRoles = Loadable(lazy(() => import('views/user-roles')));
+const DevicePropertiesPage = Loadable(lazy(() => import('views/device-properties')));
 
 // ==============================|| MAIN ROUTING ||============================== //
 
@@ -100,6 +101,10 @@ const MainRoutes = {
     {
       path: '/canvas2',
       element: <Canvas2Page />
+    },
+    {
+      path: '/canvas2/device-properties/:deviceId',
+      element: <DevicePropertiesPage />
     }
   ]
 };

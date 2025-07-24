@@ -1,3 +1,4 @@
+import { FaExternalLinkAlt } from 'react-icons/fa';
 import React, { useEffect, useState } from 'react';
 import { Box, Paper, Typography, Slider, Select, MenuItem, FormControl, InputLabel, TextField } from '@mui/material';
 import { SketchPicker } from 'react-color';
@@ -39,8 +40,11 @@ export default function InspectorPanel({ node, onStyleChange }) {
         overflowY: 'auto'
       }}
     >
-      <Typography variant="h5" gutterBottom>
-        Style
+      <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        Properties
+        <a href={`/canvas2/device-properties/${node.data.deviceId}`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
+          <FaExternalLinkAlt size="16px" />
+        </a>
       </Typography>
 
       {/* TextFields with all necessary props restored */}
