@@ -100,6 +100,15 @@ export default function CanvasPage() {
       })
     );
   };
+  useEffect(() => {
+    if (selectedNode) {
+      const latestNodeData = nodes.find((n) => n.id === selectedNode.id);
+
+      if (latestNodeData) {
+        setSelectedNode(latestNodeData);
+      }
+    }
+  }, [nodes]);
 
   const handleToggleFocusMode = () => setFocusMode((prev) => !prev);
   //there is mismatch in json file which has been corrected in the code

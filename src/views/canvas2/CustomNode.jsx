@@ -36,10 +36,9 @@ function CustomNode({ data, selected }) {
         }}
       />
 
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-        {/* The DeviceIcon component renders the correct icon based on the name */}
-        <DeviceIcon iconName={data.icon} style={{ fontSize: '16px' }} />
-        <Typography sx={{ fontWeight: 'bold' }}>{data.deviceName}</Typography>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+        <DeviceIcon iconName={data.icon} style={{ fontSize: '32px' }} />
+        <Typography sx={{ fontWeight: 'bold', fontSize: '12px', lineHeight: 1 }}>{data.deviceName}</Typography>
       </Box>
 
       <Handle type="source" position={Position.Bottom} />

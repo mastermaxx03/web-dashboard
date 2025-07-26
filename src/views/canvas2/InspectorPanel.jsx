@@ -13,6 +13,7 @@ export default function InspectorPanel({ node, onStyleChange, onClose }) {
   const [localDeviceName, setLocalDeviceName] = useState(node.data.deviceName || '');
   const [localDeviceId, setLocalDeviceId] = useState(node.data.deviceId || '');
   const [currentColor, setCurrentColor] = useState(node.data.color || '#fff');
+  const [isColorPickerVisible, setColorPickerVisible] = useState(false);
 
   useEffect(() => {
     setLocalDeviceName(node.data.deviceName || '');
@@ -22,6 +23,10 @@ export default function InspectorPanel({ node, onStyleChange, onClose }) {
 
   const handleChange = (property, value) => {
     onStyleChange(node.id, { [property]: value });
+  };
+
+  const handleColorChange = (color) => {
+    setCurrentColor(color.hex);
   };
 
   const handleColorChangeComplete = (color) => {
@@ -104,16 +109,63 @@ export default function InspectorPanel({ node, onStyleChange, onClose }) {
         onBlur={() => handleChange('deviceId', localDeviceId)}
         sx={{ mt: 1 }}
       />
+      <FormControl fullWidth size="small" sx={{ mt: 1 }}>
+        <InputLabel>Property Type</InputLabel>
+        <Select
+          label="Property Type"
+          // Ensure the value is a string to match the MenuItem values
+          value={String(node.data.propertyType || '')}
+          onChange={(e) => handleChange('propertyType', e.target.value)}
+        >
+          {/* The values are now strings to ensure a correct match */}
+          <MenuItem value={'1'}>Machine</MenuItem>
+          <MenuItem value={'5'}>Panel</MenuItem>
+        </Select>
+      </FormControl>
 
-      <Typography variant="subtitle1" sx={{ mt: 2 }}>
-        Fill Color
-      </Typography>
-      <SketchPicker
-        color={currentColor}
-        onChange={(color) => setCurrentColor(color.hex)}
-        onChangeComplete={handleColorChangeComplete}
-        width="240px"
-      />
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+          Fill Color
+        </Typography>
+        {/* --- CHANGE END --- */}
+        <Box sx={{ position: 'relative' }}>
+          <Box
+            sx={{
+              p: '5px',
+              background: '#fff',
+              borderRadius: '4px',
+              boxShadow: '0 0 0 1px rgba(0,0,0,.1)',
+              display: 'inline-block',
+              cursor: 'pointer'
+            }}
+            onClick={() => setColorPickerVisible(!isColorPickerVisible)}
+          >
+            <Box
+              sx={{
+                width: '36px',
+                height: '20px',
+                borderRadius: '2px',
+                backgroundColor: currentColor
+              }}
+            />
+          </Box>
+
+          {isColorPickerVisible && (
+            <Box sx={{ position: 'absolute', zIndex: 2, top: '100%', right: 0, mt: '8px' }}>
+              <Paper elevation={4} sx={{ position: 'relative', p: 2, pb: 1 }}>
+                <IconButton
+                  onClick={() => setColorPickerVisible(false)}
+                  size="small"
+                  sx={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}
+                >
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+                <SketchPicker color={currentColor} onChange={handleColorChange} onChangeComplete={handleColorChangeComplete} />
+              </Paper>
+            </Box>
+          )}
+        </Box>
+      </Box>
 
       <Typography variant="subtitle1" sx={{ mt: 2 }}>
         Border Color
