@@ -118,8 +118,9 @@ export default function InspectorPanel({ node, onStyleChange, onClose }) {
           onChange={(e) => handleChange('propertyType', e.target.value)}
         >
           {/* The values are now strings to ensure a correct match */}
-          <MenuItem value={'1'}>Machine</MenuItem>
-          <MenuItem value={'5'}>Panel</MenuItem>
+          <MenuItem value={'5'}>Machine</MenuItem>
+          <MenuItem value={'1'}>HT</MenuItem>
+          <MenuItem value={'5'}>LT</MenuItem>
         </Select>
       </FormControl>
 

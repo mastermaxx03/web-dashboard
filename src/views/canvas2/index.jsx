@@ -115,7 +115,7 @@ export default function CanvasPage() {
   useEffect(() => {
     const loadInitialDiagram = async () => {
       try {
-        const response = await fetch('https://iot-poc-001.s3.ap-south-1.amazonaws.com/hierarchyData4.json');
+        const response = await fetch('https://iot-poc-001.s3.ap-south-1.amazonaws.com/hierarchyData5.json');
         const data = await response.json();
         if (data && data.nodes && data.edges) {
           let maxNodeId = -1;
