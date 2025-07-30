@@ -1,4 +1,4 @@
-// This file defines ONLY the fields for Section 1.
+// This file defines ONLY the fields for Section 1 of the HT Form.
 
 export const section1Fields = [
   {
@@ -18,20 +18,20 @@ export const section1Fields = [
   {
     id: 'panel_rating_details',
     label: 'Panel Rating Details',
-    type: 'textarea', // Use 'textarea' for a multi-line text box
+    type: 'textarea',
     defaultValue: ''
   },
   {
     id: 'panel_image_upload',
     label: 'Upload Image of Panel (JPEG/PNG)',
     type: 'file',
-    accept: 'image/jpeg, image/png' // Specify accepted file types
+    accept: 'image/jpeg, image/png'
   },
   {
     id: 'panel_spec_pdf',
     label: 'Optional: Upload Panel Specifications PDF',
     type: 'file',
-    accept: '.pdf' // Specify accepted file types
+    accept: '.pdf'
   },
   {
     type: 'header',
@@ -43,21 +43,17 @@ export const section1Fields = [
     type: 'button-group',
     options: ['11kV', '22kV', '33kV'],
     defaultValue: '11kV',
-    required: true // This field is mandatory
+    required: true
   },
   {
     id: 'acceptable_range_config',
     label: 'Acceptable Range',
     type: 'range-selector',
-    // We define the parameters for our new component here
     defaultPercent: 5,
     sliderMin: 2.5,
     sliderMax: 7.5,
     sliderStep: 0.1,
-    // We also need a field to store the final calculated string
     displayFieldId: 'acceptable_range_display'
   },
-  // This is a hidden field that will just store the calculated result string
   { id: 'acceptable_range_display', type: 'hidden' }
-  // We will add the auto-calculated display fields here later
 ];

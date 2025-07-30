@@ -13,7 +13,8 @@ import {
   TextField,
   ButtonGroup,
   FormControlLabel,
-  Switch
+  Switch,
+  InputAdornment
 } from '@mui/material';
 
 import { htFormSteps } from './forms/ht-form';
@@ -25,10 +26,6 @@ const ltMachineFormSteps = [
       { id: 'asset_name', label: 'Asset Name', type: 'text', defaultValue: '' },
       { id: 'power_rating_kw', label: 'Power Rating (kW)', type: 'number', defaultValue: '' }
     ]
-  },
-  {
-    label: 'Operational Parameters',
-    fields: []
   }
 ];
 
@@ -49,11 +46,17 @@ const DevicePropertiesPage = () => {
   const [formSteps, setFormSteps] = useState([]);
   const [formData, setFormData] = useState({});
   const [isLoading, setIsLoading] = useState(true);
-
-  // --- CHANGE START ---
-  // 1. Initialized errors state as an empty object {}.
   const [errors, setErrors] = useState({});
-  // --- CHANGE END ---
+  const [rangeConfig, setRangeConfig] = useState({ mode: 'default', percent: 5 });
+
+  const calculateAcceptableRange = useCallback((nominalVoltage, percent) => {
+    const nominal = parseInt(nominalVoltage, 10);
+    if (isNaN(nominal) || !percent) return 'N/A';
+    const deviation = nominal * (percent / 100);
+    const lower = (nominal - deviation).toFixed(2);
+    const upper = (nominal + deviation).toFixed(2);
+    return `${lower} kV to ${upper} kV`;
+  }, []);
 
   useEffect(() => {
     const loadFormForDevice = async () => {
@@ -64,7 +67,6 @@ const DevicePropertiesPage = () => {
       const currentNode = diagramData.nodes.find((n) => n.data.deviceId === deviceId);
 
       if (!currentNode) {
-        console.error('Device not found!');
         setFormSteps([{ label: 'Error', fields: [] }]);
         setIsLoading(false);
         return;
@@ -82,13 +84,16 @@ const DevicePropertiesPage = () => {
           }
         });
       });
-      setFormData(initialData);
+
+      const initialRange = calculateAcceptableRange(initialData.nominal_ht_voltage, 5);
+      setFormData({ ...initialData, acceptable_range_display: initialRange });
+      setRangeConfig({ mode: 'default', percent: 5 });
 
       setIsLoading(false);
     };
 
     loadFormForDevice();
-  }, [deviceId]);
+  }, [deviceId, calculateAcceptableRange]);
 
   const handleNext = () => {
     const currentStepFields = formSteps[activeStep].fields;
@@ -102,10 +107,8 @@ const DevicePropertiesPage = () => {
       }
     });
 
-    // Set errors after checking all fields.
     setErrors(newErrors);
 
-    // Only proceed if the form is valid.
     if (isValid) {
       setActiveStep((prevActiveStep) => prevActiveStep + 1);
     }
@@ -117,10 +120,15 @@ const DevicePropertiesPage = () => {
 
   const handleInputChange = useCallback(
     (fieldId, value) => {
-      setFormData((prevData) => ({
-        ...prevData,
-        [fieldId]: value
-      }));
+      setFormData((prevData) => {
+        const newData = { ...prevData, [fieldId]: value };
+
+        if (fieldId === 'nominal_ht_voltage') {
+          const percent = rangeConfig.mode === 'default' ? 5 : rangeConfig.percent;
+          newData.acceptable_range_display = calculateAcceptableRange(value, percent);
+        }
+        return newData;
+      });
 
       if (errors[fieldId]) {
         setErrors((prevErrors) => {
@@ -130,12 +138,37 @@ const DevicePropertiesPage = () => {
         });
       }
     },
-    [errors]
+    [errors, rangeConfig, calculateAcceptableRange]
   );
+
+  const handleRangeModeChange = (mode) => {
+    const newPercent = mode === 'default' ? 5 : rangeConfig.percent;
+    setRangeConfig({ mode, percent: newPercent });
+    const newRange = calculateAcceptableRange(formData.nominal_ht_voltage, newPercent);
+    setFormData((prevData) => ({ ...prevData, acceptable_range_display: newRange }));
+  };
+
+  const handlePercentInputChange = (event, min, max) => {
+    let value = event.target.value;
+
+    if (value === '') {
+      setRangeConfig({ mode: 'custom', percent: '' });
+      const newRange = calculateAcceptableRange(formData.nominal_ht_voltage, 0);
+      setFormData((prevData) => ({ ...prevData, acceptable_range_display: newRange }));
+      return;
+    }
+
+    let numericValue = parseFloat(value);
+    if (numericValue > max) numericValue = max;
+    if (numericValue < min) numericValue = min;
+
+    setRangeConfig({ mode: 'custom', percent: numericValue });
+    const newRange = calculateAcceptableRange(formData.nominal_ht_voltage, numericValue);
+    setFormData((prevData) => ({ ...prevData, acceptable_range_display: newRange }));
+  };
 
   const renderField = (field) => {
     const value = formData[field.id] || '';
-
     const fieldLabel = (
       <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
         {field.label}
@@ -164,22 +197,72 @@ const DevicePropertiesPage = () => {
           </Typography>
         );
 
+      case 'range-selector':
+        return (
+          <Box sx={{ width: '100%' }}>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} sm={5}>
+                {fieldLabel}
+              </Grid>
+              <Grid item xs={12} sm={7}>
+                <Button
+                  variant={rangeConfig.mode === 'default' ? 'contained' : 'outlined'}
+                  onClick={() => handleRangeModeChange('default')}
+                  fullWidth
+                >
+                  Value (±{field.defaultPercent}%)
+                </Button>
+              </Grid>
+            </Grid>
+            <Box sx={{ mt: 2, px: 0 }}>
+              {/* --- CHANGE START --- */}
+              {/* 1. Removed the `disabled` prop to fix the selection issue. */}
+              <TextField
+                type="number"
+                label="Custom Range"
+                value={rangeConfig.percent}
+                onChange={(e) => handlePercentInputChange(e, field.sliderMin, field.sliderMax)}
+                fullWidth
+                size="small"
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">±</InputAdornment>,
+                  endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                  inputProps: {
+                    min: field.sliderMin,
+                    max: field.sliderMax,
+                    step: field.sliderStep
+                  }
+                }}
+              />
+              {/* --- CHANGE END --- */}
+            </Box>
+            <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 2 }}>
+              Calculated Range: <strong>{formData[field.displayFieldId]}</strong>
+            </Typography>
+          </Box>
+        );
+      case 'hidden':
+        return null;
       case 'button-group':
         return (
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-            {fieldLabel}
-            <ButtonGroup variant="outlined">
-              {field.options.map((option) => (
-                <Button
-                  key={option}
-                  variant={value === option ? 'contained' : 'outlined'}
-                  onClick={() => handleInputChange(field.id, option)}
-                >
-                  {option}
-                </Button>
-              ))}
-            </ButtonGroup>
-          </Box>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={5}>
+              {fieldLabel}
+            </Grid>
+            <Grid item xs={12} sm={7}>
+              <ButtonGroup variant="outlined" fullWidth>
+                {field.options.map((option) => (
+                  <Button
+                    key={option}
+                    variant={value === option ? 'contained' : 'outlined'}
+                    onClick={() => handleInputChange(field.id, option)}
+                  >
+                    {option}
+                  </Button>
+                ))}
+              </ButtonGroup>
+            </Grid>
+          </Grid>
         );
       case 'textarea':
         inputComponent = (
@@ -209,8 +292,6 @@ const DevicePropertiesPage = () => {
           </>
         );
         break;
-      case 'text':
-      case 'number':
       default:
         inputComponent = (
           <TextField
@@ -237,6 +318,7 @@ const DevicePropertiesPage = () => {
       </Grid>
     );
   };
+
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
@@ -265,9 +347,9 @@ const DevicePropertiesPage = () => {
       </Stepper>
 
       <Box component="form" noValidate autoComplete="off" sx={{ mt: 3 }}>
-        <Grid container spacing={3}>
+        <Grid container spacing={4}>
           {formSteps[activeStep]?.fields.map((field) => (
-            <Grid item xs={12} key={field.id}>
+            <Grid item xs={12} md={6} key={field.id || field.label}>
               {renderField(field)}
             </Grid>
           ))}
