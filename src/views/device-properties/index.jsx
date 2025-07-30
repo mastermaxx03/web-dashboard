@@ -347,9 +347,10 @@ const DevicePropertiesPage = () => {
       </Stepper>
 
       <Box component="form" noValidate autoComplete="off" sx={{ mt: 3 }}>
-        <Grid container spacing={4}>
+        <Grid container spacing={3}>
+          {/* Changed the Grid item to take up the full width (`xs={12}`) on all screen sizes, creating a single-column layout. */}
           {formSteps[activeStep]?.fields.map((field) => (
-            <Grid item xs={12} md={6} key={field.id || field.label}>
+            <Grid item xs={12} key={field.id || field.label}>
               {renderField(field)}
             </Grid>
           ))}
