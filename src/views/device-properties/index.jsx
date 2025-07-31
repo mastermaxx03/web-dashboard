@@ -40,6 +40,24 @@ const getFormConfigForPropertyType = (propertyType) => {
   }
 };
 
+const calculateAcceptableRange = (nominalVoltage, percent) => {
+  const nominal = parseInt(nominalVoltage, 10);
+  if (isNaN(nominal) || !percent) return 'N/A';
+  const deviation = nominal * (percent / 100);
+  const lower = (nominal - deviation).toFixed(2);
+  const upper = (nominal + deviation).toFixed(2);
+  return `${lower} kV to ${upper} kV`;
+};
+
+const calculateWarningRange = (nominalVoltage, percent) => {
+  const nominal = parseInt(nominalVoltage, 10);
+  if (isNaN(nominal) || !percent) return 'N/A';
+  const deviation = nominal * (percent / 100);
+  const lower = (nominal - deviation).toFixed(2);
+  const upper = (nominal + deviation).toFixed(2);
+  return `> ${upper} kV or < ${lower} kV`;
+};
+
 const DevicePropertiesPage = () => {
   const { deviceId } = useParams();
   const [activeStep, setActiveStep] = useState(0);
@@ -47,16 +65,8 @@ const DevicePropertiesPage = () => {
   const [formData, setFormData] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [errors, setErrors] = useState({});
-  const [rangeConfig, setRangeConfig] = useState({ mode: 'default', percent: 5 });
-
-  const calculateAcceptableRange = useCallback((nominalVoltage, percent) => {
-    const nominal = parseInt(nominalVoltage, 10);
-    if (isNaN(nominal) || !percent) return 'N/A';
-    const deviation = nominal * (percent / 100);
-    const lower = (nominal - deviation).toFixed(2);
-    const upper = (nominal + deviation).toFixed(2);
-    return `${lower} kV to ${upper} kV`;
-  }, []);
+  const [acceptableRangeConfig, setAcceptableRangeConfig] = useState({ mode: 'default', percent: 5 });
+  const [warningRangeConfig, setWarningRangeConfig] = useState({ mode: 'default', percent: 10 });
 
   useEffect(() => {
     const loadFormForDevice = async () => {
@@ -85,15 +95,21 @@ const DevicePropertiesPage = () => {
         });
       });
 
-      const initialRange = calculateAcceptableRange(initialData.nominal_ht_voltage, 5);
-      setFormData({ ...initialData, acceptable_range_display: initialRange });
-      setRangeConfig({ mode: 'default', percent: 5 });
+      const initialAcceptable = calculateAcceptableRange(initialData.nominal_ht_voltage, 5);
+      const initialWarning = calculateWarningRange(initialData.nominal_ht_voltage, 10);
+      setFormData({
+        ...initialData,
+        acceptable_range_display: initialAcceptable,
+        warning_threshold_display: initialWarning
+      });
+      setAcceptableRangeConfig({ mode: 'default', percent: 5 });
+      setWarningRangeConfig({ mode: 'default', percent: 10 });
 
       setIsLoading(false);
     };
 
     loadFormForDevice();
-  }, [deviceId, calculateAcceptableRange]);
+  }, [deviceId]);
 
   const handleNext = () => {
     const currentStepFields = formSteps[activeStep].fields;
@@ -124,9 +140,12 @@ const DevicePropertiesPage = () => {
         const newData = { ...prevData, [fieldId]: value };
 
         if (fieldId === 'nominal_ht_voltage') {
-          const percent = rangeConfig.mode === 'default' ? 5 : rangeConfig.percent;
-          newData.acceptable_range_display = calculateAcceptableRange(value, percent);
+          const acceptablePercent = acceptableRangeConfig.mode === 'default' ? 5 : acceptableRangeConfig.percent;
+          const warningPercent = warningRangeConfig.mode === 'default' ? 10 : warningRangeConfig.percent;
+          newData.acceptable_range_display = calculateAcceptableRange(value, acceptablePercent);
+          newData.warning_threshold_display = calculateWarningRange(value, warningPercent);
         }
+
         return newData;
       });
 
@@ -138,33 +157,54 @@ const DevicePropertiesPage = () => {
         });
       }
     },
-    [errors, rangeConfig, calculateAcceptableRange]
+    // --- CHANGE START ---
+    // 1. Corrected the dependency array to include all the necessary state variables.
+    [errors, acceptableRangeConfig, warningRangeConfig]
+    // --- CHANGE END ---
   );
 
-  const handleRangeModeChange = (mode) => {
-    const newPercent = mode === 'default' ? 5 : rangeConfig.percent;
-    setRangeConfig({ mode, percent: newPercent });
+  const handleAcceptableRangeModeChange = (mode) => {
+    const newPercent = mode === 'default' ? 5 : acceptableRangeConfig.percent;
+    setAcceptableRangeConfig({ mode, percent: newPercent });
     const newRange = calculateAcceptableRange(formData.nominal_ht_voltage, newPercent);
     setFormData((prevData) => ({ ...prevData, acceptable_range_display: newRange }));
   };
 
-  const handlePercentInputChange = (event, min, max) => {
+  const handleAcceptablePercentInputChange = (event, min, max) => {
     let value = event.target.value;
-
     if (value === '') {
-      setRangeConfig({ mode: 'custom', percent: '' });
-      const newRange = calculateAcceptableRange(formData.nominal_ht_voltage, 0);
-      setFormData((prevData) => ({ ...prevData, acceptable_range_display: newRange }));
+      setAcceptableRangeConfig({ mode: 'custom', percent: '' });
       return;
     }
-
     let numericValue = parseFloat(value);
     if (numericValue > max) numericValue = max;
     if (numericValue < min) numericValue = min;
 
-    setRangeConfig({ mode: 'custom', percent: numericValue });
+    setAcceptableRangeConfig({ mode: 'custom', percent: numericValue });
     const newRange = calculateAcceptableRange(formData.nominal_ht_voltage, numericValue);
     setFormData((prevData) => ({ ...prevData, acceptable_range_display: newRange }));
+  };
+
+  const handleWarningRangeModeChange = (mode) => {
+    const newPercent = mode === 'default' ? 10 : warningRangeConfig.percent;
+    setWarningRangeConfig({ mode, percent: newPercent });
+    const newRange = calculateWarningRange(formData.nominal_ht_voltage, newPercent);
+    setFormData((prevData) => ({ ...prevData, warning_threshold_display: newRange }));
+  };
+
+  const handleWarningPercentInputChange = (event, min, max) => {
+    let value = event.target.value;
+    if (value === '') {
+      setWarningRangeConfig({ mode: 'custom', percent: '' });
+      return;
+    }
+    let numericValue = parseFloat(value);
+    if (numericValue > max) numericValue = max;
+    if (numericValue < min) numericValue = min;
+
+    setWarningRangeConfig({ mode: 'custom', percent: numericValue });
+    const newRange = calculateWarningRange(formData.nominal_ht_voltage, numericValue);
+    setFormData((prevData) => ({ ...prevData, warning_threshold_display: newRange }));
   };
 
   const renderField = (field) => {
@@ -197,7 +237,12 @@ const DevicePropertiesPage = () => {
           </Typography>
         );
 
-      case 'range-selector':
+      case 'range-selector': {
+        const isAcceptable = field.id === 'acceptable_range_config';
+        const config = isAcceptable ? acceptableRangeConfig : warningRangeConfig;
+        const handleModeChange = isAcceptable ? handleAcceptableRangeModeChange : handleWarningRangeModeChange;
+        const handleInputChange = isAcceptable ? handleAcceptablePercentInputChange : handleWarningPercentInputChange;
+
         return (
           <Box sx={{ width: '100%' }}>
             <Grid container spacing={2} alignItems="center">
@@ -206,8 +251,8 @@ const DevicePropertiesPage = () => {
               </Grid>
               <Grid item xs={12} sm={7}>
                 <Button
-                  variant={rangeConfig.mode === 'default' ? 'contained' : 'outlined'}
-                  onClick={() => handleRangeModeChange('default')}
+                  variant={config.mode === 'default' ? 'contained' : 'outlined'}
+                  onClick={() => handleModeChange('default')}
                   fullWidth
                 >
                   Value (±{field.defaultPercent}%)
@@ -215,32 +260,26 @@ const DevicePropertiesPage = () => {
               </Grid>
             </Grid>
             <Box sx={{ mt: 2, px: 0 }}>
-              {/* --- CHANGE START --- */}
-              {/* 1. Removed the `disabled` prop to fix the selection issue. */}
               <TextField
                 type="number"
                 label="Custom Range"
-                value={rangeConfig.percent}
-                onChange={(e) => handlePercentInputChange(e, field.sliderMin, field.sliderMax)}
+                value={config.percent}
+                onChange={(e) => handleInputChange(e, field.sliderMin, field.sliderMax)}
                 fullWidth
                 size="small"
                 InputProps={{
                   startAdornment: <InputAdornment position="start">±</InputAdornment>,
                   endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                  inputProps: {
-                    min: field.sliderMin,
-                    max: field.sliderMax,
-                    step: field.sliderStep
-                  }
+                  inputProps: { min: field.sliderMin, max: field.sliderMax, step: field.sliderStep }
                 }}
               />
-              {/* --- CHANGE END --- */}
             </Box>
             <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 2 }}>
               Calculated Range: <strong>{formData[field.displayFieldId]}</strong>
             </Typography>
           </Box>
         );
+      }
       case 'hidden':
         return null;
       case 'button-group':
@@ -348,7 +387,6 @@ const DevicePropertiesPage = () => {
 
       <Box component="form" noValidate autoComplete="off" sx={{ mt: 3 }}>
         <Grid container spacing={3}>
-          {/* Changed the Grid item to take up the full width (`xs={12}`) on all screen sizes, creating a single-column layout. */}
           {formSteps[activeStep]?.fields.map((field) => (
             <Grid item xs={12} key={field.id || field.label}>
               {renderField(field)}

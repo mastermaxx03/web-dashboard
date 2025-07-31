@@ -55,5 +55,16 @@ export const section1Fields = [
     sliderStep: 0.1,
     displayFieldId: 'acceptable_range_display'
   },
-  { id: 'acceptable_range_display', type: 'hidden' }
+  { id: 'acceptable_range_display', type: 'hidden' },
+  {
+    id: 'warning_threshold_config',
+    label: 'Warning Thresholds',
+    type: 'range-selector',
+    defaultPercent: 10, // Default is now 10%
+    sliderMin: 7.6, // Example min/max
+    sliderMax: 15.0,
+    sliderStep: 0.1,
+    displayFieldId: 'warning_threshold_display'
+  },
+  { id: 'warning_threshold_display', type: 'hidden' }
 ];
