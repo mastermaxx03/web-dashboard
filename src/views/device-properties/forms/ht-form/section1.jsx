@@ -66,5 +66,16 @@ export const section1Fields = [
     sliderStep: 0.1,
     displayFieldId: 'warning_threshold_display'
   },
-  { id: 'warning_threshold_display', type: 'hidden' }
+  { id: 'warning_threshold_display', type: 'hidden' },
+  {
+    id: 'critical_threshold_config',
+    label: 'Critical Threshold',
+    type: 'range-selector',
+    defaultPercent: 10,
+    sliderMin: 5,
+    sliderMax: 15,
+    sliderStep: 0.1,
+    displayFieldId: 'critical_threshold_display'
+  },
+  { id: 'critical_theshold_display', type: 'hidden' }
 ];

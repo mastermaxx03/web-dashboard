@@ -57,6 +57,14 @@ const calculateWarningRange = (nominalVoltage, percent) => {
   const upper = (nominal + deviation).toFixed(2);
   return `> ${upper} kV or < ${lower} kV`;
 };
+const calculateCriticalRange = (nominalVoltage, percent) => {
+  const nominal = parseInt(nominalVoltage, 10);
+  if (isNaN(nominal) || !percent) return 'N/A';
+  const deviation = nominal * (percent / 100);
+  const lower = (nominal - deviation).toFixed(2);
+  const upper = (nominal + deviation).toFixed(2);
+  return `>${upper} kV or <${lower} kV`;
+};
 
 const DevicePropertiesPage = () => {
   const { deviceId } = useParams();
@@ -67,7 +75,7 @@ const DevicePropertiesPage = () => {
   const [errors, setErrors] = useState({});
   const [acceptableRangeConfig, setAcceptableRangeConfig] = useState({ mode: 'default', percent: 5 });
   const [warningRangeConfig, setWarningRangeConfig] = useState({ mode: 'default', percent: 10 });
-
+  const [criticalRangeConfig, setCriticalRangeConfig] = useState({ mode: 'default', percent: 10 });
   useEffect(() => {
     const loadFormForDevice = async () => {
       setIsLoading(true);
@@ -97,13 +105,16 @@ const DevicePropertiesPage = () => {
 
       const initialAcceptable = calculateAcceptableRange(initialData.nominal_ht_voltage, 5);
       const initialWarning = calculateWarningRange(initialData.nominal_ht_voltage, 10);
+      const initialCritical = calculateCriticalRange(initialData.nominal_ht_voltage, 10);
       setFormData({
         ...initialData,
         acceptable_range_display: initialAcceptable,
-        warning_threshold_display: initialWarning
+        warning_threshold_display: initialWarning,
+        critical_threshold_display: initialCritical
       });
       setAcceptableRangeConfig({ mode: 'default', percent: 5 });
       setWarningRangeConfig({ mode: 'default', percent: 10 });
+      setCriticalRangeConfig({ mode: 'default', percent: 10 });
 
       setIsLoading(false);
     };
@@ -142,8 +153,10 @@ const DevicePropertiesPage = () => {
         if (fieldId === 'nominal_ht_voltage') {
           const acceptablePercent = acceptableRangeConfig.mode === 'default' ? 5 : acceptableRangeConfig.percent;
           const warningPercent = warningRangeConfig.mode === 'default' ? 10 : warningRangeConfig.percent;
+          const criticalPercent = criticalRangeConfig.mode === 'default' ? 10 : criticalRangeConfig.percent;
           newData.acceptable_range_display = calculateAcceptableRange(value, acceptablePercent);
           newData.warning_threshold_display = calculateWarningRange(value, warningPercent);
+          newData.critical_threshold_display = calculateCriticalRange(value, criticalPercent);
         }
 
         return newData;
@@ -159,7 +172,7 @@ const DevicePropertiesPage = () => {
     },
     // --- CHANGE START ---
     // 1. Corrected the dependency array to include all the necessary state variables.
-    [errors, acceptableRangeConfig, warningRangeConfig]
+    [errors, acceptableRangeConfig, warningRangeConfig, criticalRangeConfig]
     // --- CHANGE END ---
   );
 
@@ -206,6 +219,29 @@ const DevicePropertiesPage = () => {
     const newRange = calculateWarningRange(formData.nominal_ht_voltage, numericValue);
     setFormData((prevData) => ({ ...prevData, warning_threshold_display: newRange }));
   };
+  const handleCriticalRangeModeChange = (mode) => {
+    const newPercent = mode === 'default' ? 10 : criticalRangeConfig.percent;
+    setCriticalRangeConfig({ mode, percent: newPercent });
+    const newRange = calculateCriticalRange(formData.nominal_ht_voltage, newPercent);
+    setFormData((prevData) => ({ ...prevData, critical_threshold_display: newRange }));
+  };
+  const handleCriticalPercentInputChange = (event, min, max) => {
+    let value = event.target.value;
+    if (value === '') {
+      setCriticalRangeConfig({ mode: 'custom', percent: '' });
+      return;
+    }
+    let numericValue = parseFloat(value);
+    if (numericValue > max) numericValue = max;
+    if (numericValue < min) numericValue = min;
+
+    setCriticalRangeConfig({ mode: 'custom', percent: numericValue });
+    const newRange = calculateCriticalRange(formData.nominal_ht_voltage, numericValue);
+    setFormData((prevData) => ({
+      ...prevData,
+      critical_threshold_display: newRange
+    }));
+  };
 
   const renderField = (field) => {
     const value = formData[field.id] || '';
@@ -238,11 +274,20 @@ const DevicePropertiesPage = () => {
         );
 
       case 'range-selector': {
-        const isAcceptable = field.id === 'acceptable_range_config';
-        const config = isAcceptable ? acceptableRangeConfig : warningRangeConfig;
-        const handleModeChange = isAcceptable ? handleAcceptableRangeModeChange : handleWarningRangeModeChange;
-        const handleInputChange = isAcceptable ? handleAcceptablePercentInputChange : handleWarningPercentInputChange;
-
+        let config, handleModeChange, handleInputChange;
+        if (field.id === 'acceptable_range_config') {
+          config = acceptableRangeConfig;
+          handleModeChange = handleAcceptableRangeModeChange;
+          handleInputChange = handleAcceptablePercentInputChange;
+        } else if (field.id === 'warning_threshold_config') {
+          config = warningRangeConfig;
+          handleModeChange = handleWarningRangeModeChange;
+          handleInputChange = handleWarningPercentInputChange;
+        } else {
+          config = criticalRangeConfig;
+          handleModeChange = handleCriticalRangeModeChange;
+          handleInputChange = handleCriticalPercentInputChange;
+        }
         return (
           <Box sx={{ width: '100%' }}>
             <Grid container spacing={2} alignItems="center">
