@@ -41,8 +41,12 @@ export const section1Fields = [
     id: 'nominal_ht_voltage',
     label: 'Nominal HT Voltage',
     type: 'button-group',
-    options: ['11kV', '22kV', '33kV'],
-    defaultValue: '11kV',
+    options: [
+      { label: '11 kV', value: 11 },
+      { label: '22 kV', value: 22 },
+      { label: '33 kV', value: 33 }
+    ],
+    defaultValue: '11',
     required: true
   },
   {
@@ -54,7 +58,9 @@ export const section1Fields = [
     sliderMin: 2.5,
     sliderMax: 7.5,
     sliderStep: 0.1,
-    displayFieldId: 'acceptable_range_display'
+    displayFieldId: 'acceptable_range_display',
+    lowerBoundFieldId: 'acceptable_range_lower',
+    upperBoundFieldId: 'acceptable_range_upper'
   },
   { id: 'acceptable_range_display', type: 'hidden' },
   {
@@ -70,7 +76,9 @@ export const section1Fields = [
     sliderMin: 2.5,
     sliderMax: 12.5,
     sliderStep: 0.1,
-    displayFieldId: 'warning_threshold_display'
+    displayFieldId: 'warning_threshold_display',
+    lowerBoundFieldId: 'warning_threshold_lower',
+    upperBoundFieldId: 'warning_threshold_upper'
   },
   { id: 'warning_threshold_display', type: 'hidden' },
   {
@@ -82,7 +90,9 @@ export const section1Fields = [
     sliderMin: 7.5,
     sliderMax: 15,
     sliderStep: 0.1,
-    displayFieldId: 'critical_threshold_display'
+    displayFieldId: 'critical_threshold_display',
+    lowerBoundFieldId: 'critical_threshold_lower',
+    upperBoundFieldId: 'critical_threshold_upper'
   },
   { id: 'critical_threshold_display', type: 'hidden' },
   {

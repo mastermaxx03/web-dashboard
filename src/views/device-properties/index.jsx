@@ -42,30 +42,46 @@ const getFormConfigForPropertyType = (propertyType) => {
 
 const calculateAcceptableRange = (nominalVoltage, percent) => {
   const nominal = parseInt(nominalVoltage, 10);
-  if (isNaN(nominal) || !percent) return 'N/A';
+  if (isNaN(nominal) || !percent) return { display: 'N/A', lower: null, upper: null };
   const deviation = nominal * (percent / 100);
-  const lower = (nominal - deviation).toFixed(2);
-  const upper = (nominal + deviation).toFixed(2);
-  return `${lower} kV to ${upper} kV`;
+  const lower = parseFloat((nominal - deviation).toFixed(2));
+  const upper = parseFloat((nominal + deviation).toFixed(2));
+  return {
+    display: `${lower} kV to ${upper} kV`,
+    lower: lower,
+    upper: upper
+  };
 };
 
 const calculateWarningRange = (nominalVoltage, percent) => {
   const nominal = parseInt(nominalVoltage, 10);
-  if (isNaN(nominal) || !percent) return 'N/A';
+  if (isNaN(nominal) || !percent) return { display: 'N/A', lower: null, upper: null };
   const deviation = nominal * (percent / 100);
-  const lower = (nominal - deviation).toFixed(2);
-  const upper = (nominal + deviation).toFixed(2);
-  return `> ${upper} kV or < ${lower} kV`;
+  const lower = parseFloat((nominal - deviation).toFixed(2));
+  const upper = parseFloat((nominal + deviation).toFixed(2));
+  return {
+    display: ` ${lower} kV to  ${upper} kV`,
+    lower: lower,
+    upper: upper
+  };
 };
 const calculateCriticalRange = (nominalVoltage, percent) => {
   const nominal = parseInt(nominalVoltage, 10);
-  if (isNaN(nominal) || !percent) return 'N/A';
+  if (isNaN(nominal) || !percent) return { display: 'N/A', lower: null, upper: null };
   const deviation = nominal * (percent / 100);
-  const lower = (nominal - deviation).toFixed(2);
-  const upper = (nominal + deviation).toFixed(2);
-  return `>${upper} kV or <${lower} kV`;
+  const lower = parseFloat((nominal - deviation).toFixed(2));
+  const upper = parseFloat((nominal + deviation).toFixed(2));
+  return { display: `${lower} kV to ${upper} kV`, lower: lower, upper: upper };
 };
 
+//function to convert string to number
+const parseNumericValueFromString = (str) => {
+  if (typeof str !== 'string') return null;
+  // This regular expression finds the first sequence of digits (including decimals)
+  const match = str.match(/\d+(\.\d+)?/);
+
+  return match ? parseFloat(match[0]) : null;
+};
 const DevicePropertiesPage = () => {
   const { deviceId } = useParams();
   const [activeStep, setActiveStep] = useState(0);
@@ -124,9 +140,15 @@ const DevicePropertiesPage = () => {
 
       setFormData({
         ...initialData,
-        acceptable_range_display: initialAcceptable,
-        warning_threshold_display: initialWarning,
-        critical_threshold_display: initialCritical,
+        acceptable_range_display: initialAcceptable.display,
+        acceptable_range_lower: initialAcceptable.lower,
+        acceptable_range_upper: initialAcceptable.upper,
+        warning_threshold_display: initialWarning.display,
+        warning_threshold_lower: initialWarning.lower,
+        warning_threshold_upper: initialWarning.upper,
+        critical_threshold_display: initialCritical.display,
+        critical_threshold_lower: initialCritical.lower,
+        critical_threshold_upper: initialCritical.upper,
         acceptable_range_Vdisplay: initialAcceptableVImbalance,
         warning_threshold_Vdisplay: initialWarningVImbalance,
         critical_threshold_Vdisplay: initialCriticalVImbalance
@@ -172,16 +194,30 @@ const DevicePropertiesPage = () => {
 
   const handleInputChange = useCallback(
     (fieldId, value) => {
+      // Find the field's blueprint to check its type
+      const field = formSteps[activeStep]?.fields.find((f) => f.id === fieldId);
+
+      // First, we process the value to convert it to a number if needed.
+      const processedValue = field?.type === 'number' ? parseFloat(value) || '' : value;
+
+      // Then, we use this processedValue to update our state.
       setFormData((prevData) => {
-        const newData = { ...prevData, [fieldId]: value };
+        const newData = { ...prevData, [fieldId]: processedValue };
 
         if (fieldId === 'nominal_ht_voltage') {
-          const acceptablePercent = acceptableRangeConfig.mode === 'default' ? 5 : acceptableRangeConfig.percent;
-          const warningPercent = warningRangeConfig.mode === 'default' ? 10 : warningRangeConfig.percent;
-          const criticalPercent = criticalRangeConfig.mode === 'default' ? 10 : criticalRangeConfig.percent;
-          newData.acceptable_range_display = calculateAcceptableRange(value, acceptablePercent);
-          newData.warning_threshold_display = calculateWarningRange(value, warningPercent);
-          newData.critical_threshold_display = calculateCriticalRange(value, criticalPercent);
+          const acceptableResult = calculateAcceptableRange(processedValue, acceptableRangeConfig.percent);
+          const warningResult = calculateWarningRange(processedValue, warningRangeConfig.percent);
+          const criticalResult = calculateCriticalRange(processedValue, criticalRangeConfig.percent);
+
+          newData.acceptable_range_display = acceptableResult.display;
+          newData.acceptable_range_lower = acceptableResult.lower;
+          newData.acceptable_range_upper = acceptableResult.upper;
+          newData.warning_threshold_display = warningResult.display;
+          newData.warning_threshold_lower = warningResult.lower;
+          newData.warning_threshold_upper = warningResult.upper;
+          newData.critical_threshold_display = criticalResult.display;
+          newData.critical_threshold_lower = criticalResult.lower;
+          newData.critical_threshold_upper = criticalResult.upper;
         }
 
         return newData;
@@ -194,40 +230,63 @@ const DevicePropertiesPage = () => {
           return newErrors;
         });
       }
-      setFormError(''); // Clear general error as soon as the user starts fixing
     },
-    [errors, acceptableRangeConfig, warningRangeConfig, criticalRangeConfig]
+    [errors, acceptableRangeConfig, warningRangeConfig, criticalRangeConfig, activeStep, formSteps]
   );
   //reset save validate buttons
   const handleReset = () => {
-    console.log('Resetting form to initial values.');
-    const initialAcceptable = calculateAcceptableRange(initialData.nominal_ht_voltage, 5);
-    const initialWarning = calculateWarningRange(initialData.nominal_ht_voltage, 10);
-    const initialCritical = calculateCriticalRange(initialData.nominal_ht_voltage, 10);
-    const initialAcceptableVImbalance = `≤ 2%`;
-    const initialWarningVImbalance = `> 2%`;
-    const initialCriticalVImbalance = `> 3%`;
+    console.log('Resetting form, clearing nominal voltage.');
+
+    const resetData = { ...initialData };
+    resetData.nominal_ht_voltage = '';
+
+    // Recalculate the default/reset states for all ranges
+    const initialAcceptable = calculateAcceptableRange(resetData.nominal_ht_voltage, 5);
+    const initialWarning = calculateWarningRange(resetData.nominal_ht_voltage, 10);
+    const initialCritical = calculateCriticalRange(resetData.nominal_ht_voltage, 10);
 
     setFormData({
-      ...initialData,
-      acceptable_range_display: initialAcceptable,
-      warning_threshold_display: initialWarning,
-      critical_threshold_display: initialCritical,
-      acceptable_range_Vdisplay: initialAcceptableVImbalance,
-      warning_threshold_Vdisplay: initialWarningVImbalance,
-      critical_threshold_Vdisplay: initialCriticalVImbalance
+      ...resetData,
+      // FIX: Access the .display, .lower, and .upper properties from the returned objects
+      acceptable_range_display: initialAcceptable.display,
+      acceptable_range_lower: initialAcceptable.lower,
+      acceptable_range_upper: initialAcceptable.upper,
+
+      warning_threshold_display: initialWarning.display,
+      warning_threshold_lower: initialWarning.lower,
+      warning_threshold_upper: initialWarning.upper,
+
+      critical_threshold_display: initialCritical.display,
+      critical_threshold_lower: initialCritical.lower,
+      critical_threshold_upper: initialCritical.upper
     });
-    // Also reset the interactive component states
+
+    // Reset the interactive component states to their defaults
     setAcceptableRangeConfig({ mode: 'default', percent: 5 });
     setWarningRangeConfig({ mode: 'default', percent: 10 });
     setCriticalRangeConfig({ mode: 'default', percent: 10 });
     setAcceptableRangeVIConfig({ mode: 'default', percent: 2 });
-    setWarningRangeVIConfig({ mode: 'default', percent: 2.1 });
-    setCriticalRangeVIConfig({ mode: 'default', percent: 3.1 });
+    setWarningRangeVIConfig({ mode: 'default', percent: 2 });
+    setCriticalRangeVIConfig({ mode: 'default', percent: 3 });
   };
 
   const handleSaveDraft = () => {
-    console.log('Saving draft...', formData);
+    // Destructure formData to separate the display strings
+    const {
+      acceptable_range_display,
+      warning_threshold_display,
+      critical_threshold_display,
+      acceptable_range_Vdisplay,
+      warning_threshold_Vdisplay,
+      critical_threshold_Vdisplay,
+      ...draftData // Collect the rest of the data into draftData
+    } = formData;
+    draftData.acceptable_v_imbalance_percent = parseNumericValueFromString(formData.acceptable_range_Vdisplay);
+    draftData.warning_v_imbalance_percent = parseNumericValueFromString(formData.warning_threshold_Vdisplay);
+    draftData.critical_v_imbalance_percent = parseNumericValueFromString(formData.critical_threshold_Vdisplay);
+
+    // Now `draftData` is the clean object you want to save
+    console.log('Saving cleaned draft data:', draftData);
     alert('Draft Saved!');
   };
 
@@ -244,66 +303,77 @@ const DevicePropertiesPage = () => {
     const newPercent = mode === 'default' ? 5 : acceptableRangeConfig.percent;
     setAcceptableRangeConfig({ mode, percent: newPercent });
     const newRange = calculateAcceptableRange(formData.nominal_ht_voltage, newPercent);
-    setFormData((prevData) => ({ ...prevData, acceptable_range_display: newRange }));
+    setFormData((prevData) => ({
+      ...prevData,
+      acceptable_range_display: newRange.display,
+      acceptable_range_lower: newRange.lower,
+      acceptable_range_upper: newRange.upper
+    }));
   };
 
   const handleAcceptablePercentInputChange = (event, min, max) => {
     let value = event.target.value;
-    if (value === '') {
-      setAcceptableRangeConfig({ mode: 'custom', percent: '' });
-      return;
-    }
-    let numericValue = parseFloat(value);
+    let numericValue = value === '' ? '' : parseFloat(value);
     if (numericValue > max) numericValue = max;
     if (numericValue < min) numericValue = min;
-
     setAcceptableRangeConfig({ mode: 'custom', percent: numericValue });
     const newRange = calculateAcceptableRange(formData.nominal_ht_voltage, numericValue);
-    setFormData((prevData) => ({ ...prevData, acceptable_range_display: newRange }));
+    setFormData((prevData) => ({
+      ...prevData,
+      acceptable_range_display: newRange.display,
+      acceptable_range_lower: newRange.lower,
+      acceptable_range_upper: newRange.upper
+    }));
   };
 
   const handleWarningRangeModeChange = (mode) => {
     const newPercent = mode === 'default' ? 10 : warningRangeConfig.percent;
     setWarningRangeConfig({ mode, percent: newPercent });
     const newRange = calculateWarningRange(formData.nominal_ht_voltage, newPercent);
-    setFormData((prevData) => ({ ...prevData, warning_threshold_display: newRange }));
+    setFormData((prevData) => ({
+      ...prevData,
+      warning_threshold_display: newRange.display,
+      warning_threshold_lower: newRange.lower,
+      warning_threshold_upper: newRange.upper
+    }));
   };
-
   const handleWarningPercentInputChange = (event, min, max) => {
     let value = event.target.value;
-    if (value === '') {
-      setWarningRangeConfig({ mode: 'custom', percent: '' });
-      return;
-    }
-    let numericValue = parseFloat(value);
+    let numericValue = value === '' ? '' : parseFloat(value);
     if (numericValue > max) numericValue = max;
     if (numericValue < min) numericValue = min;
-
     setWarningRangeConfig({ mode: 'custom', percent: numericValue });
     const newRange = calculateWarningRange(formData.nominal_ht_voltage, numericValue);
-    setFormData((prevData) => ({ ...prevData, warning_threshold_display: newRange }));
+    setFormData((prevData) => ({
+      ...prevData,
+      warning_threshold_display: newRange.display,
+      warning_threshold_lower: newRange.lower,
+      warning_threshold_upper: newRange.upper
+    }));
   };
   const handleCriticalRangeModeChange = (mode) => {
     const newPercent = mode === 'default' ? 10 : criticalRangeConfig.percent;
     setCriticalRangeConfig({ mode, percent: newPercent });
     const newRange = calculateCriticalRange(formData.nominal_ht_voltage, newPercent);
-    setFormData((prevData) => ({ ...prevData, critical_threshold_display: newRange }));
+    setFormData((prevData) => ({
+      ...prevData,
+      critical_threshold_display: newRange.display,
+      critical_threshold_lower: newRange.lower,
+      critical_threshold_upper: newRange.upper
+    }));
   };
   const handleCriticalPercentInputChange = (event, min, max) => {
     let value = event.target.value;
-    if (value === '') {
-      setCriticalRangeConfig({ mode: 'custom', percent: '' });
-      return;
-    }
-    let numericValue = parseFloat(value);
+    let numericValue = value === '' ? '' : parseFloat(value);
     if (numericValue > max) numericValue = max;
     if (numericValue < min) numericValue = min;
-
     setCriticalRangeConfig({ mode: 'custom', percent: numericValue });
     const newRange = calculateCriticalRange(formData.nominal_ht_voltage, numericValue);
     setFormData((prevData) => ({
       ...prevData,
-      critical_threshold_display: newRange
+      critical_threshold_display: newRange.display,
+      critical_threshold_lower: newRange.lower,
+      critical_threshold_upper: newRange.upper
     }));
   };
   const handleAcceptableRangeVIModeChange = (mode) => {
@@ -457,11 +527,11 @@ const DevicePropertiesPage = () => {
                 <ButtonGroup variant="outlined" fullWidth>
                   {field.options.map((option) => (
                     <Button
-                      key={option}
-                      variant={value === option ? 'contained' : 'outlined'}
-                      onClick={() => handleInputChange(field.id, option)}
+                      key={option.value}
+                      variant={value === option.value ? 'contained' : 'outlined'}
+                      onClick={() => handleInputChange(field.id, option.value)}
                     >
-                      {option}
+                      {option.label}
                     </Button>
                   ))}
                 </ButtonGroup>

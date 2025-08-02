@@ -2,6 +2,7 @@
 // Its only job is to import all the sections and assemble them.
 
 import { section1Fields } from './section1';
+import { section2Fields } from './section2';
 
 // the final structure of our multi-step form here.
 export const htFormSteps = [
@@ -11,7 +12,7 @@ export const htFormSteps = [
   },
   {
     label: 'Frequency',
-    fields: [] // We will replace this with section2Fields later
+    fields: section2Fields // We will replace this with section2Fields later
   },
   {
     label: ' Load Current',
