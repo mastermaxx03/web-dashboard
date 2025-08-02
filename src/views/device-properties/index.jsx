@@ -128,8 +128,8 @@ const DevicePropertiesPage = () => {
         warning_threshold_display: initialWarning,
         critical_threshold_display: initialCritical,
         acceptable_range_Vdisplay: initialAcceptableVImbalance,
-        warning_range_Vdisplay: initialWarningVImbalance,
-        critical_range_Vdisplay: initialCriticalVImbalance
+        warning_threshold_Vdisplay: initialWarningVImbalance,
+        critical_threshold_Vdisplay: initialCriticalVImbalance
       });
       setAcceptableRangeConfig({ mode: 'default', percent: 5 });
       setWarningRangeConfig({ mode: 'default', percent: 10 });
@@ -453,17 +453,25 @@ const DevicePropertiesPage = () => {
               {fieldLabel}
             </Grid>
             <Grid item xs={12} sm={7}>
-              <ButtonGroup variant="outlined" fullWidth>
-                {field.options.map((option) => (
-                  <Button
-                    key={option}
-                    variant={value === option ? 'contained' : 'outlined'}
-                    onClick={() => handleInputChange(field.id, option)}
-                  >
-                    {option}
-                  </Button>
-                ))}
-              </ButtonGroup>
+              <Box>
+                <ButtonGroup variant="outlined" fullWidth>
+                  {field.options.map((option) => (
+                    <Button
+                      key={option}
+                      variant={value === option ? 'contained' : 'outlined'}
+                      onClick={() => handleInputChange(field.id, option)}
+                    >
+                      {option}
+                    </Button>
+                  ))}
+                </ButtonGroup>
+                {/* This is the new error message, which only appears if an error exists for this field */}
+                {errors[field.id] && (
+                  <Typography color="error" variant="caption" sx={{ mt: 1 }}>
+                    {errors[field.id]}
+                  </Typography>
+                )}
+              </Box>
             </Grid>
           </Grid>
         );
