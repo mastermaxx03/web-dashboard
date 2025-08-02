@@ -76,6 +76,15 @@ const DevicePropertiesPage = () => {
   const [acceptableRangeConfig, setAcceptableRangeConfig] = useState({ mode: 'default', percent: 5 });
   const [warningRangeConfig, setWarningRangeConfig] = useState({ mode: 'default', percent: 10 });
   const [criticalRangeConfig, setCriticalRangeConfig] = useState({ mode: 'default', percent: 10 });
+  const [acceptableRangeVIConfig, setAcceptableRangeVIConfig] = useState({ mode: 'default', percent: 2 });
+  const [warningRangeVIConfig, setWarningRangeVIConfig] = useState({ mode: 'default', percent: 2 });
+  const [criticalRangeVIConfig, setCriticalRangeVIConfig] = useState({ mode: 'default', percent: 3 });
+  //storing initial data
+  const [initialData, setInitialData] = useState({});
+
+  //to display error message
+  const [formError, setFormError] = useState('');
+
   useEffect(() => {
     const loadFormForDevice = async () => {
       setIsLoading(true);
@@ -94,27 +103,40 @@ const DevicePropertiesPage = () => {
       const currentFormSteps = getFormConfigForPropertyType(propertyType);
       setFormSteps(currentFormSteps);
 
-      const initialData = {};
+      const initialValues = {};
       currentFormSteps.forEach((step) => {
         step.fields.forEach((field) => {
           if (field.defaultValue !== undefined) {
-            initialData[field.id] = field.defaultValue;
+            initialValues[field.id] = field.defaultValue;
           }
         });
       });
 
+      // Correctly save the initial default values into our state.
+      setInitialData(initialValues);
+
       const initialAcceptable = calculateAcceptableRange(initialData.nominal_ht_voltage, 5);
       const initialWarning = calculateWarningRange(initialData.nominal_ht_voltage, 10);
       const initialCritical = calculateCriticalRange(initialData.nominal_ht_voltage, 10);
+      const initialAcceptableVImbalance = `≤ 2%`;
+      const initialWarningVImbalance = `> 2%`;
+      const initialCriticalVImbalance = `> 3%`;
+
       setFormData({
         ...initialData,
         acceptable_range_display: initialAcceptable,
         warning_threshold_display: initialWarning,
-        critical_threshold_display: initialCritical
+        critical_threshold_display: initialCritical,
+        acceptable_range_Vdisplay: initialAcceptableVImbalance,
+        warning_range_Vdisplay: initialWarningVImbalance,
+        critical_range_Vdisplay: initialCriticalVImbalance
       });
       setAcceptableRangeConfig({ mode: 'default', percent: 5 });
       setWarningRangeConfig({ mode: 'default', percent: 10 });
       setCriticalRangeConfig({ mode: 'default', percent: 10 });
+      setAcceptableRangeVIConfig({ mode: 'default', percent: 2 });
+      setWarningRangeVIConfig({ mode: 'default', percent: 2.1 });
+      setCriticalRangeVIConfig({ mode: 'default', percent: 3 });
 
       setIsLoading(false);
     };
@@ -129,7 +151,7 @@ const DevicePropertiesPage = () => {
 
     currentStepFields.forEach((field) => {
       if (field.required && (!formData[field.id] || formData[field.id] === '')) {
-        newErrors[field.id] = 'This field is required';
+        newErrors[field.id] = `${field.label} is required`; // Dynamic message
         isValid = false;
       }
     });
@@ -137,7 +159,10 @@ const DevicePropertiesPage = () => {
     setErrors(newErrors);
 
     if (isValid) {
+      setFormError(''); // Clear the error message on success
       setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    } else {
+      setFormError('Please fill out all required fields.'); // Set the error message on failure
     }
   };
 
@@ -169,13 +194,52 @@ const DevicePropertiesPage = () => {
           return newErrors;
         });
       }
+      setFormError(''); // Clear general error as soon as the user starts fixing
     },
-    // --- CHANGE START ---
-    // 1. Corrected the dependency array to include all the necessary state variables.
     [errors, acceptableRangeConfig, warningRangeConfig, criticalRangeConfig]
-    // --- CHANGE END ---
   );
+  //reset save validate buttons
+  const handleReset = () => {
+    console.log('Resetting form to initial values.');
+    const initialAcceptable = calculateAcceptableRange(initialData.nominal_ht_voltage, 5);
+    const initialWarning = calculateWarningRange(initialData.nominal_ht_voltage, 10);
+    const initialCritical = calculateCriticalRange(initialData.nominal_ht_voltage, 10);
+    const initialAcceptableVImbalance = `≤ 2%`;
+    const initialWarningVImbalance = `> 2%`;
+    const initialCriticalVImbalance = `> 3%`;
 
+    setFormData({
+      ...initialData,
+      acceptable_range_display: initialAcceptable,
+      warning_threshold_display: initialWarning,
+      critical_threshold_display: initialCritical,
+      acceptable_range_Vdisplay: initialAcceptableVImbalance,
+      warning_threshold_Vdisplay: initialWarningVImbalance,
+      critical_threshold_Vdisplay: initialCriticalVImbalance
+    });
+    // Also reset the interactive component states
+    setAcceptableRangeConfig({ mode: 'default', percent: 5 });
+    setWarningRangeConfig({ mode: 'default', percent: 10 });
+    setCriticalRangeConfig({ mode: 'default', percent: 10 });
+    setAcceptableRangeVIConfig({ mode: 'default', percent: 2 });
+    setWarningRangeVIConfig({ mode: 'default', percent: 2.1 });
+    setCriticalRangeVIConfig({ mode: 'default', percent: 3.1 });
+  };
+
+  const handleSaveDraft = () => {
+    console.log('Saving draft...', formData);
+    alert('Draft Saved!');
+  };
+
+  const handleValidate = () => {
+    console.log('Validating current step...', formData);
+    alert('Validation Complete!');
+  };
+
+  const handleSubmit = () => {
+    console.log('Submitting final form...', formData);
+    alert('Form Submitted!');
+  };
   const handleAcceptableRangeModeChange = (mode) => {
     const newPercent = mode === 'default' ? 5 : acceptableRangeConfig.percent;
     setAcceptableRangeConfig({ mode, percent: newPercent });
@@ -242,6 +306,49 @@ const DevicePropertiesPage = () => {
       critical_threshold_display: newRange
     }));
   };
+  const handleAcceptableRangeVIModeChange = (mode) => {
+    const newPercent = mode === 'default' ? 2 : acceptableRangeVIConfig.percent;
+    setAcceptableRangeVIConfig({ mode, percent: newPercent });
+    setFormData((prev) => ({ ...prev, acceptable_range_Vdisplay: `≤ ${newPercent}%` }));
+  };
+
+  const handleAcceptableRangeVIInputChange = (event, min, max) => {
+    let value = event.target.value;
+    let numericValue = value === '' ? '' : parseFloat(value);
+    if (numericValue > max) numericValue = max;
+    if (numericValue < min) numericValue = min;
+    setAcceptableRangeVIConfig({ mode: 'custom', percent: numericValue });
+    setFormData((prev) => ({ ...prev, acceptable_range_Vdisplay: `≤ ${numericValue}%` }));
+  };
+  const handleWarningRangeVIModeChange = (mode) => {
+    const newPercent = mode === 'default' ? 2 : warningRangeVIConfig.percent;
+    setWarningRangeVIConfig({ mode, percent: newPercent });
+    setFormData((prev) => ({ ...prev, warning_threshold_Vdisplay: `> ${newPercent}%` }));
+  };
+
+  const handleWarningRangeVIInputChange = (event, min, max) => {
+    let value = event.target.value;
+    let numericValue = value === '' ? '' : parseFloat(value);
+    if (numericValue > max) numericValue = max;
+    if (numericValue < min) numericValue = min;
+    setWarningRangeVIConfig({ mode: 'custom', percent: numericValue });
+    setFormData((prev) => ({ ...prev, warning_threshold_Vdisplay: `> ${numericValue}%` }));
+  };
+
+  const handleCriticalRangeVIModeChange = (mode) => {
+    const newPercent = mode === 'default' ? 3 : criticalRangeVIConfig.percent;
+    setCriticalRangeVIConfig({ mode, percent: newPercent });
+    setFormData((prev) => ({ ...prev, critical_threshold_Vdisplay: `> ${newPercent}%` }));
+  };
+
+  const handleCriticalRangeVIInputChange = (event, min, max) => {
+    let value = event.target.value;
+    let numericValue = value === '' ? '' : parseFloat(value);
+    if (numericValue > max) numericValue = max;
+    if (numericValue < min) numericValue = min;
+    setCriticalRangeVIConfig({ mode: 'custom', percent: numericValue });
+    setFormData((prev) => ({ ...prev, critical_threshold_Vdisplay: `> ${numericValue}%` }));
+  };
 
   const renderField = (field) => {
     const value = formData[field.id] || '';
@@ -283,10 +390,22 @@ const DevicePropertiesPage = () => {
           config = warningRangeConfig;
           handleModeChange = handleWarningRangeModeChange;
           handleInputChange = handleWarningPercentInputChange;
-        } else {
+        } else if (field.id === 'critical_threshold_config') {
           config = criticalRangeConfig;
           handleModeChange = handleCriticalRangeModeChange;
           handleInputChange = handleCriticalPercentInputChange;
+        } else if (field.id === 'acceptable_range_voltage') {
+          config = acceptableRangeVIConfig;
+          handleModeChange = handleAcceptableRangeVIModeChange;
+          handleInputChange = handleAcceptableRangeVIInputChange;
+        } else if (field.id === 'warning_threshold_VIconfig') {
+          config = warningRangeVIConfig;
+          handleModeChange = handleWarningRangeVIModeChange;
+          handleInputChange = handleWarningRangeVIInputChange;
+        } else {
+          config = criticalRangeVIConfig;
+          handleModeChange = handleCriticalRangeVIModeChange;
+          handleInputChange = handleCriticalRangeVIInputChange;
         }
         return (
           <Box sx={{ width: '100%' }}>
@@ -300,7 +419,7 @@ const DevicePropertiesPage = () => {
                   onClick={() => handleModeChange('default')}
                   fullWidth
                 >
-                  Value (±{field.defaultPercent}%)
+                  {field.buttonLabel || `Value (±${field.defaultPercent}%)`}
                 </Button>
               </Grid>
             </Grid>
@@ -440,15 +559,43 @@ const DevicePropertiesPage = () => {
         </Grid>
       </Box>
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4 }}>
-        {activeStep > 0 && (
-          <Button color="inherit" onClick={handleBack} sx={{ mr: 1 }}>
-            Back
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4, alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button variant="outlined" color="secondary" onClick={handleReset}>
+            Reset
           </Button>
-        )}
-        <Button variant="contained" disabled={activeStep === steps.length - 1} onClick={handleNext}>
-          Next
-        </Button>
+          <Button variant="outlined" color="primary" onClick={handleSaveDraft}>
+            Save Draft
+          </Button>
+        </Box>
+
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          {/* This is the new error message, which only appears if `formError` has text */}
+          {formError && (
+            <Typography color="error" variant="body2">
+              {formError}
+            </Typography>
+          )}
+
+          {activeStep > 0 && (
+            <Button color="inherit" onClick={handleBack}>
+              Back
+            </Button>
+          )}
+          <Button variant="outlined" onClick={handleValidate}>
+            Validate
+          </Button>
+
+          {activeStep < steps.length - 1 ? (
+            <Button variant="contained" onClick={handleNext}>
+              Next
+            </Button>
+          ) : (
+            <Button variant="contained" color="primary" onClick={handleSubmit}>
+              Submit
+            </Button>
+          )}
+        </Box>
       </Box>
     </Paper>
   );

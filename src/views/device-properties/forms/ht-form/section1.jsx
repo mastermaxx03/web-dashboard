@@ -49,6 +49,7 @@ export const section1Fields = [
     id: 'acceptable_range_config',
     label: 'Acceptable Range',
     type: 'range-selector',
+    buttonLabel: 'Upto 5%',
     defaultPercent: 5,
     sliderMin: 2.5,
     sliderMax: 7.5,
@@ -60,9 +61,14 @@ export const section1Fields = [
     id: 'warning_threshold_config',
     label: 'Warning Thresholds',
     type: 'range-selector',
-    defaultPercent: 10, // Default is now 10%
-    sliderMin: 7.6, // Example min/max
-    sliderMax: 15.0,
+    // --- CHANGE START ---
+    // 1. Added a new label for our single default button.
+    buttonLabel: 'Between 5% and 10%',
+    // We still need a default percentage for the initial state of the input field.
+    defaultPercent: 10,
+    // --- CHANGE END ---
+    sliderMin: 2.5,
+    sliderMax: 12.5,
     sliderStep: 0.1,
     displayFieldId: 'warning_threshold_display'
   },
@@ -71,11 +77,73 @@ export const section1Fields = [
     id: 'critical_threshold_config',
     label: 'Critical Threshold',
     type: 'range-selector',
+    buttonLabel: 'More than 10%',
     defaultPercent: 10,
-    sliderMin: 5,
+    sliderMin: 7.5,
     sliderMax: 15,
     sliderStep: 0.1,
     displayFieldId: 'critical_threshold_display'
   },
-  { id: 'critical_theshold_display', type: 'hidden' }
+  { id: 'critical_threshold_display', type: 'hidden' },
+  {
+    id: 'aux_dc_voltage',
+    label: 'Auxiliary DC Power Supply Voltage (Volts DC)',
+    type: 'number',
+    default: ''
+  },
+  {
+    id: 'battery_capacity',
+    label: 'Rated Ampere-Hour Combined Battery Capacity',
+    type: 'number',
+    default: ''
+  },
+  {
+    type: 'header',
+    label: 'Phase Imbalance'
+  },
+  {
+    id: 'acceptable_range_voltage',
+    label: 'Acceptable Range',
+    type: 'range-selector',
+    buttonLabel: ' Voltage Imbalance <= 2% ',
+    defaultPercent: 2,
+    sliderMin: 0,
+    sliderMax: 2,
+    sliderStep: 0.1,
+    displayFieldId: 'acceptable_range_Vdisplay'
+  },
+  {
+    id: 'acceptable_range_Vdisplay',
+    type: 'hidden'
+  },
+  {
+    id: 'warning_threshold_VIconfig',
+    label: 'Warning Threshold',
+    type: 'range-selector',
+    buttonLabel: 'Voltage Imbalance > 2%',
+    defaultPercent: 2,
+    sliderMin: 2,
+    sliderMax: 3,
+    sliderStep: 0.1,
+    displayFieldId: 'warning_threshold_Vdisplay'
+  },
+  {
+    id: 'warning_threshold_Vdisplay',
+    type: 'hidden'
+  },
+  {
+    id: 'critical_threshold_VIconfig',
+    label: 'Critical Threshold',
+    type: 'range-selector',
+    buttonLabel: 'Voltage Imbalance > 3%',
+    defaultPercent: 3,
+    sliderMin: 3,
+    sliderMax: 10,
+    sliderStep: 0.1,
+    displayFieldId: 'critical_threshold_Vdisplay'
+  },
+  {
+    id: 'critical_threshold_Vdisplay',
+    type: 'hidden'
+  }
 ];

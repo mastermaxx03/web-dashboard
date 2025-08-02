@@ -6,15 +6,15 @@ import { section1Fields } from './section1';
 // the final structure of our multi-step form here.
 export const htFormSteps = [
   {
-    label: 'Section 1: Static & Default Settings',
+    label: 'Static & Default Settings',
     fields: section1Fields // Use the imported fields
   },
   {
-    label: 'Section 2: Frequency',
+    label: 'Frequency',
     fields: [] // We will replace this with section2Fields later
   },
   {
-    label: 'Section 3: Load Current',
+    label: ' Load Current',
     fields: []
   },
   {
