@@ -74,6 +74,40 @@ const calculateCriticalRange = (nominalVoltage, percent) => {
   return { display: `${lower} kV to ${upper} kV`, lower: lower, upper: upper };
 };
 
+//section 2 frequency
+export const calculateFrequencyThresholds = (nominalFrequency) => {
+  const nominal = parseFloat(nominalFrequency);
+  if (isNaN(nominal))
+    return {
+      warning_threshold_freq_display: 'N/A',
+      critical_threshold_freq_display: 'N/A',
+      warning_freq_lower: null,
+      warning_freq_upper: null,
+      critical_freq_lower: null,
+      critical_freq_upper: null
+    };
+
+  // Calculate warning thresholds at ±1%
+  const warningDeviation = nominal * 0.01;
+  const warningLow = (nominal - warningDeviation).toFixed(1);
+  const warningHigh = (nominal + warningDeviation).toFixed(1);
+
+  // Calculate critical thresholds at ±3%
+  const criticalDeviation = nominal * 0.03;
+  const criticalLow = (nominal - criticalDeviation).toFixed(1);
+  const criticalHigh = (nominal + criticalDeviation).toFixed(1);
+
+  return {
+    warning_threshold_freq_display: `${warningLow} Hz to ${warningHigh} Hz`,
+    critical_threshold_freq_display: `${criticalLow} Hz to ${criticalHigh} Hz`,
+    // We can also return the raw numbers if needed for the backend
+    warning_freq_lower: parseFloat(warningLow),
+    warning_freq_upper: parseFloat(warningHigh),
+    critical_freq_lower: parseFloat(criticalLow),
+    critical_freq_upper: parseFloat(criticalHigh)
+  };
+};
+
 //function to convert string to number
 const parseNumericValueFromString = (str) => {
   if (typeof str !== 'string') return null;
@@ -95,6 +129,7 @@ const DevicePropertiesPage = () => {
   const [acceptableRangeVIConfig, setAcceptableRangeVIConfig] = useState({ mode: 'default', percent: 2 });
   const [warningRangeVIConfig, setWarningRangeVIConfig] = useState({ mode: 'default', percent: 2 });
   const [criticalRangeVIConfig, setCriticalRangeVIConfig] = useState({ mode: 'default', percent: 3 });
+
   //storing initial data
   const [initialData, setInitialData] = useState({});
 
@@ -134,8 +169,11 @@ const DevicePropertiesPage = () => {
       const initialAcceptable = calculateAcceptableRange(initialData.nominal_ht_voltage, 5);
       const initialWarning = calculateWarningRange(initialData.nominal_ht_voltage, 10);
       const initialCritical = calculateCriticalRange(initialData.nominal_ht_voltage, 10);
+      //freq
+      const initialFreqThresholds = calculateFrequencyThresholds(initialValues.nominal_frequency);
       const initialAcceptableVImbalance = `≤ 2%`;
       const initialWarningVImbalance = `> 2%`;
+
       const initialCriticalVImbalance = `> 3%`;
 
       setFormData({
@@ -149,6 +187,7 @@ const DevicePropertiesPage = () => {
         critical_threshold_display: initialCritical.display,
         critical_threshold_lower: initialCritical.lower,
         critical_threshold_upper: initialCritical.upper,
+        ...initialFreqThresholds,
         acceptable_range_Vdisplay: initialAcceptableVImbalance,
         warning_threshold_Vdisplay: initialWarningVImbalance,
         critical_threshold_Vdisplay: initialCriticalVImbalance
@@ -218,6 +257,9 @@ const DevicePropertiesPage = () => {
           newData.critical_threshold_display = criticalResult.display;
           newData.critical_threshold_lower = criticalResult.lower;
           newData.critical_threshold_upper = criticalResult.upper;
+        } else if (fieldId === 'nominal_frequency') {
+          const newFrequencyThresholds = calculateFrequencyThresholds(processedValue);
+          return { ...newData, ...newFrequencyThresholds };
         }
 
         return newData;
@@ -235,7 +277,63 @@ const DevicePropertiesPage = () => {
   );
   //reset save validate buttons
   const handleReset = () => {
-    console.log('Resetting form, clearing nominal voltage.');
+    // 1. Find which fields belong ONLY to the current step.
+    const currentStepFields = formSteps[activeStep]?.fields;
+    if (!currentStepFields) {
+      console.error('Could not find fields for the current step.');
+      return;
+    }
+
+    // 2. Create a temporary 'updates' object to hold all our changes.
+    const updates = {};
+    currentStepFields.forEach((field) => {
+      if (field.defaultValue !== undefined) {
+        updates[field.id] = field.defaultValue;
+      }
+    });
+
+    // 3. Handle special "domino effects" for specific sections.
+
+    // --- Logic for your "Frequency" section ---
+    if (updates.hasOwnProperty('nominal_frequency')) {
+      const newFrequencyThresholds = calculateFrequencyThresholds(updates.nominal_frequency);
+      Object.assign(updates, newFrequencyThresholds);
+    }
+
+    // --- Logic for your "HT Voltage" section ---
+    if (updates.hasOwnProperty('nominal_ht_voltage')) {
+      const newAcceptable = calculateAcceptableRange(updates.nominal_ht_voltage, 5);
+      const newWarning = calculateWarningRange(updates.nominal_ht_voltage, 10);
+      const newCritical = calculateCriticalRange(updates.nominal_ht_voltage, 10);
+      updates.acceptable_range_display = newAcceptable.display;
+      updates.warning_threshold_display = newWarning.display;
+      updates.critical_threshold_display = newCritical.display;
+
+      setAcceptableRangeConfig({ mode: 'default', percent: 5 });
+      setWarningRangeConfig({ mode: 'default', percent: 10 });
+      setCriticalRangeConfig({ mode: 'default', percent: 10 });
+    }
+
+    // --- Logic for your "Voltage Imbalance" section ---
+    if (updates.hasOwnProperty('acceptable_range_voltage')) {
+      setAcceptableRangeVIConfig({ mode: 'default', percent: 2 });
+      setWarningRangeVIConfig({ mode: 'default', percent: 2 });
+      setCriticalRangeVIConfig({ mode: 'default', percent: 3 });
+    }
+
+    // TODO: Add an 'if' block here for your other sections if they have special reset logic.
+
+    // 4. Apply all the collected changes to the form state at once.
+    setFormData((prevData) => ({
+      ...prevData,
+      ...updates
+    }));
+
+    console.log(`Successfully reset Section ${activeStep + 1}`);
+  };
+
+  {
+    /* console.log('Resetting form, clearing nominal voltage.');
 
     const resetData = { ...initialData };
     resetData.nominal_ht_voltage = '';
@@ -269,9 +367,24 @@ const DevicePropertiesPage = () => {
     setWarningRangeVIConfig({ mode: 'default', percent: 2 });
     setCriticalRangeVIConfig({ mode: 'default', percent: 3 });
   };
+  */
+  }
+  // This function contains all the data cleaning logic in one place.
+  const prepareDataForBackend = (data) => {
+    // Create a mutable copy to work with
+    let cleanData = { ...data };
 
-  const handleSaveDraft = () => {
-    // Destructure formData to separate the display strings
+    // Convert nominal_frequency to a number
+    if (cleanData.nominal_frequency) {
+      cleanData.nominal_frequency = parseFloat(cleanData.nominal_frequency);
+    }
+
+    // Perform conversions from other display strings
+    cleanData.acceptable_v_imbalance_percent = parseNumericValueFromString(cleanData.acceptable_range_Vdisplay);
+    cleanData.warning_v_imbalance_percent = parseNumericValueFromString(cleanData.warning_threshold_Vdisplay);
+    cleanData.critical_v_imbalance_percent = parseNumericValueFromString(cleanData.critical_threshold_Vdisplay);
+
+    // Use destructuring to create the final object, removing all display-only fields
     const {
       acceptable_range_display,
       warning_threshold_display,
@@ -279,13 +392,17 @@ const DevicePropertiesPage = () => {
       acceptable_range_Vdisplay,
       warning_threshold_Vdisplay,
       critical_threshold_Vdisplay,
-      ...draftData // Collect the rest of the data into draftData
-    } = formData;
-    draftData.acceptable_v_imbalance_percent = parseNumericValueFromString(formData.acceptable_range_Vdisplay);
-    draftData.warning_v_imbalance_percent = parseNumericValueFromString(formData.warning_threshold_Vdisplay);
-    draftData.critical_v_imbalance_percent = parseNumericValueFromString(formData.critical_threshold_Vdisplay);
+      warning_threshold_freq_display,
+      critical_threshold_freq_display,
+      ...finalPayload
+    } = cleanData;
 
-    // Now `draftData` is the clean object you want to save
+    return finalPayload;
+  };
+  const handleSaveDraft = () => {
+    // Call the helper to get the clean data
+    const draftData = prepareDataForBackend(formData);
+
     console.log('Saving cleaned draft data:', draftData);
     alert('Draft Saved!');
   };
@@ -296,9 +413,13 @@ const DevicePropertiesPage = () => {
   };
 
   const handleSubmit = () => {
-    console.log('Submitting final form...', formData);
+    // Use the exact same helper for the final submission
+    const finalData = prepareDataForBackend(formData);
+
+    console.log('Submitting final form...', finalData);
     alert('Form Submitted!');
   };
+
   const handleAcceptableRangeModeChange = (mode) => {
     const newPercent = mode === 'default' ? 5 : acceptableRangeConfig.percent;
     setAcceptableRangeConfig({ mode, percent: newPercent });
@@ -571,6 +692,20 @@ const DevicePropertiesPage = () => {
               </Typography>
             )}
           </>
+        );
+        break;
+      case 'display':
+        return (
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={5}>
+              <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                {field.label}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={7}>
+              <Typography variant="body1">{formData[field.id]}</Typography>
+            </Grid>
+          </Grid>
         );
         break;
       default:
