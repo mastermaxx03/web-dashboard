@@ -34,7 +34,9 @@ export const section2Fields = [
     id: 'warning_max_dev_freq',
     label: 'Warning Max Deviation',
     type: 'button-group',
-    options: [{ label: '+1 Hz', value: 1.0 }],
+    options: [{ label: '±1.0 Hz`', value: 1.0 }],
+    defaultValue: '',
+
     required: true
   },
   {
@@ -42,6 +44,8 @@ export const section2Fields = [
     label: 'Critical Max Deviation',
     type: 'button-group',
     options: [{ label: '±1.5 Hz', value: 1.5 }],
+    defaultValue: '',
+
     required: true
   }
 ];

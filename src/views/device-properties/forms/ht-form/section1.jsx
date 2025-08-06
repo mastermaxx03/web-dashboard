@@ -99,13 +99,17 @@ export const section1Fields = [
     id: 'aux_dc_voltage',
     label: 'Auxiliary DC Power Supply Voltage (Volts DC)',
     type: 'number',
-    default: ''
+    // --- CHANGE START ---
+    defaultValue: '' // Corrected from `default`
+    // --- CHANGE END ---
   },
   {
     id: 'battery_capacity',
     label: 'Rated Ampere-Hour Combined Battery Capacity',
     type: 'number',
-    default: ''
+    // --- CHANGE START ---
+    defaultValue: '' // Corrected from `default`
+    // --- CHANGE END ---
   },
   {
     type: 'header',
