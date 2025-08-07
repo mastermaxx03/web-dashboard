@@ -55,8 +55,8 @@ export const section1Fields = [
     type: 'range-selector',
     buttonLabel: 'Upto 5%',
     defaultPercent: 5,
-    sliderMin: 2.5,
-    sliderMax: 7.5,
+    sliderMin: 3.75, // 0.25% of 5%
+    sliderMax: 6.25,
     sliderStep: 0.1,
     displayFieldId: 'acceptable_range_display',
     lowerBoundFieldId: 'acceptable_range_lower',

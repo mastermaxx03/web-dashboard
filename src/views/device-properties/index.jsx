@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 
 import { htFormSteps } from './forms/ht-form';
+import { transformDataForBackend } from './dataTransformer';
 
 const ltMachineFormSteps = [
   {
@@ -135,6 +136,8 @@ const DevicePropertiesPage = () => {
 
   //to display error message
   const [formError, setFormError] = useState('');
+  //backend state
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const loadFormForDevice = async () => {
@@ -178,9 +181,10 @@ const DevicePropertiesPage = () => {
 
       setFormData({
         ...initialData,
-        acceptable_range_display: initialAcceptable.display,
         acceptable_range_lower: initialAcceptable.lower,
         acceptable_range_upper: initialAcceptable.upper,
+        acceptable_range_display: initialAcceptable.display,
+
         warning_threshold_display: initialWarning.display,
         warning_threshold_lower: initialWarning.lower,
         warning_threshold_upper: initialWarning.upper,
@@ -399,12 +403,34 @@ const DevicePropertiesPage = () => {
 
     return finalPayload;
   };
-  const handleSaveDraft = () => {
-    // Call the helper to get the clean data
-    const draftData = prepareDataForBackend(formData);
+  const handleSaveDraft = async () => {
+    const backendPayload = transformDataForBackend(formData, deviceId);
+    console.log('Saving cleaned draft data to backend:', backendPayload);
 
-    console.log('Saving cleaned draft data:', draftData);
-    alert('Draft Saved!');
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('http://3.7.222.84:9006/api/v1/policy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(backendPayload)
+      });
+
+      if (!response.ok) {
+        // Handle HTTP errors like 404 or 500
+        throw new Error(`Network response was not ok: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('Success:', result);
+      alert('Draft Saved Successfully!');
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      alert('Failed to save draft.');
+    } finally {
+      setIsSubmitting(false); // Ensure the loading state is turned off
+    }
   };
 
   const handleValidate = () => {

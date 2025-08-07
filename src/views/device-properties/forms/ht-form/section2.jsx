@@ -1,5 +1,3 @@
-// This file defines ONLY the fields for Section 2 of the HT Form.
-
 export const section2Fields = [
   {
     type: 'header',
