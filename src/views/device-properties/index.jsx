@@ -744,6 +744,16 @@ const DevicePropertiesPage = () => {
             size="small"
             error={!!errors[field.id]}
             helperText={errors[field.id] || ''}
+            InputProps={{
+              endAdornment: field.unit ? <InputAdornment position="end">{field.unit}</InputAdornment> : null,
+
+              inputProps: {
+                min: field.min,
+                max: field.max,
+                step: field.step
+              }
+              // --- CHANGE END ---
+            }}
           />
         );
         break;

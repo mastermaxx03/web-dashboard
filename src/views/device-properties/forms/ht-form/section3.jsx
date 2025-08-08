@@ -126,12 +126,10 @@ export const section3Fields = [
     id: 'cb_ir_setting',
     label: 'Circuit Breaker – Ir Setting @',
     type: 'number',
-
-    defaultValue: 0,
-
+    defaultValue: 0.0,
+    required: true,
     min: 0,
     max: 1,
-    step: 0.1,
-    required: true
+    step: 0.1
   }
 ];
