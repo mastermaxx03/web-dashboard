@@ -70,8 +70,8 @@ export const section3Fields = [
   },
 
   {
-    id: 'b_phase_secondary_current',
-    label: 'CT SECONDARY CURRENT',
+    id: 'b_phase_primary_current',
+    label: 'CT PRIMARY CURRENT',
     type: 'number',
     unit: 'A',
     defaultValue: '',
@@ -123,13 +123,78 @@ export const section3Fields = [
     required: true
   },
   {
-    id: 'cb_ir_setting',
-    label: 'Circuit Breaker – Ir Setting @',
+    label: 'Circuit Breaker – Ir Setting (0-100)',
     type: 'number',
-    defaultValue: 0.0,
+    defaultValue: '',
     required: true,
     min: 0,
-    max: 1,
-    step: 0.1
-  }
+    max: 100,
+    step: 1
+  },
+  {
+    // This new field will display the calculated result
+    id: 'cb_ir_setting_decimal',
+    label: 'Calculated Multiplication Factor',
+    type: 'display',
+    defaultValue: '0.00'
+  },
+  {
+    id: 'cb_ir_long_time_setting',
+    label: 'Circuit Breaker - Ir (Long-Time/Continuous Setting Current)',
+    type: 'display',
+    defaultValue: '0 A' // Default value
+  },
+  {
+    id: 'default_warning_threshold_current',
+    label: 'Default Warning Threshold',
+    type: 'button-group',
+    options: [
+      { label: '(80 – 85) % of Ir', value: '80-85' },
+      { label: '(86 – 90) % of Ir', value: '86-90' }
+    ],
+    defaultValue: '80-85',
+    required: true
+  },
+  // 2. Added the new button group for the Critical Threshold.
+  {
+    id: 'default_critical_threshold_current',
+    label: 'Default Critical Threshold',
+    type: 'button-group',
+    options: [
+      { label: '(91 – 94) % of Ir', value: '91-94' },
+      { label: '(95 – 98) % of Ir', value: '95-98' }
+    ],
+    defaultValue: '91-94',
+    required: true
+  },
+  {
+    type: 'header',
+    label: 'HT Current Imbalance %'
+  },
+  {
+    id: 'current_imbalance_warning_config', // New, descriptive ID
+    label: 'Default Warning Threshold',
+    type: 'range-selector', // Changed type
+    buttonLabel: '10%',
+    defaultPercent: 10,
+    sliderMin: 5, // Example range
+    sliderMax: 15,
+    sliderStep: 0.5,
+    displayFieldId: 'current_imbalance_warning_display'
+  },
+  { id: 'current_imbalance_warning_display', type: 'hidden' },
+
+  {
+    id: 'current_imbalance_critical_config', // New, descriptive ID
+    label: 'Default Critical Threshold',
+    type: 'range-selector', // Changed type
+    buttonLabel: '20%',
+    defaultPercent: 20,
+    sliderMin: 15.1, // Example range
+    sliderMax: 30,
+    sliderStep: 0.5,
+    displayFieldId: 'current_imbalance_critical_display'
+  },
+  { id: 'current_imbalance_critical_display', type: 'hidden' }
+  // --- CHANGE END ---
 ];

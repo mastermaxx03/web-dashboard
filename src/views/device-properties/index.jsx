@@ -1,24 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import {
-  Box,
-  Paper,
-  Typography,
-  Stepper,
-  Step,
-  StepLabel,
-  Grid,
-  Button,
-  CircularProgress,
-  TextField,
-  ButtonGroup,
-  FormControlLabel,
-  Switch,
-  InputAdornment
-} from '@mui/material';
+import { Box, Paper, Typography, Stepper, Step, StepLabel, Grid, Button, CircularProgress } from '@mui/material';
 
 import { htFormSteps } from './forms/ht-form';
 import { transformDataForBackend } from './dataTransformer';
+
+import RangeSelectorField from './forms/components/RangeSelectorField';
+import ButtonGroupField from './forms/components/ButtonGroupField';
+import TextInputField from './forms/components/TextInputField';
+import { DisplayField, FileField } from './forms/components/OtherFields';
 
 const ltMachineFormSteps = [
   {
@@ -117,6 +107,18 @@ const parseNumericValueFromString = (str) => {
 
   return match ? parseFloat(match[0]) : null;
 };
+
+// --- NEW: Component mapping object defined outside the main component ---
+const fieldComponentMap = {
+  'button-group': ButtonGroupField,
+  textarea: TextInputField,
+  text: TextInputField,
+  number: TextInputField,
+  file: FileField,
+  display: DisplayField,
+  'range-selector': RangeSelectorField
+};
+
 const DevicePropertiesPage = () => {
   const { deviceId } = useParams();
   const [activeStep, setActiveStep] = useState(0);
@@ -237,15 +239,26 @@ const DevicePropertiesPage = () => {
 
   const handleInputChange = useCallback(
     (fieldId, value) => {
-      // Find the field's blueprint to check its type
-      const field = formSteps[activeStep]?.fields.find((f) => f.id === fieldId);
+      const field = formSteps.flatMap((step) => step.fields).find((f) => f.id === fieldId);
 
-      // First, we process the value to convert it to a number if needed.
       const processedValue = field?.type === 'number' ? parseFloat(value) || '' : value;
-
       // Then, we use this processedValue to update our state.
       setFormData((prevData) => {
         const newData = { ...prevData, [fieldId]: processedValue };
+        if (fieldId === 'cb_ir_setting') {
+          const num = parseFloat(processedValue);
+          newData.cb_ir_setting_decimal = isNaN(num) ? '0.00' : (num / 100).toFixed(2);
+        }
+        if (fieldId === 'cb_rated_current_in' || fieldId === 'cb_ir_setting_decimal') {
+          const ratedCurrent = parseFloat(newData.cb_rated_current_in);
+          const irSettingDecimal = parseFloat(newData.cb_ir_setting_decimal);
+
+          if (!isNaN(ratedCurrent) && !isNaN(irSettingDecimal)) {
+            newData.cb_ir_long_time_setting = (ratedCurrent * irSettingDecimal).toFixed(2) + ' A';
+          } else {
+            newData.cb_ir_long_time_setting = '0 A';
+          }
+        }
 
         if (fieldId === 'nominal_ht_voltage') {
           const acceptableResult = calculateAcceptableRange(processedValue, acceptableRangeConfig.percent);
@@ -277,7 +290,7 @@ const DevicePropertiesPage = () => {
         });
       }
     },
-    [errors, acceptableRangeConfig, warningRangeConfig, criticalRangeConfig, activeStep, formSteps]
+    [errors, acceptableRangeConfig, warningRangeConfig, criticalRangeConfig, formSteps]
   );
   //reset save validate buttons
   const handleReset = () => {
@@ -325,8 +338,6 @@ const DevicePropertiesPage = () => {
       setCriticalRangeVIConfig({ mode: 'default', percent: 3 });
     }
 
-    // TODO: Add an 'if' block here for your other sections if they have special reset logic.
-
     // 4. Apply all the collected changes to the form state at once.
     setFormData((prevData) => ({
       ...prevData,
@@ -336,59 +347,15 @@ const DevicePropertiesPage = () => {
     console.log(`Successfully reset Section ${activeStep + 1}`);
   };
 
-  {
-    /* console.log('Resetting form, clearing nominal voltage.');
-
-    const resetData = { ...initialData };
-    resetData.nominal_ht_voltage = '';
-
-    // Recalculate the default/reset states for all ranges
-    const initialAcceptable = calculateAcceptableRange(resetData.nominal_ht_voltage, 5);
-    const initialWarning = calculateWarningRange(resetData.nominal_ht_voltage, 10);
-    const initialCritical = calculateCriticalRange(resetData.nominal_ht_voltage, 10);
-
-    setFormData({
-      ...resetData,
-      // FIX: Access the .display, .lower, and .upper properties from the returned objects
-      acceptable_range_display: initialAcceptable.display,
-      acceptable_range_lower: initialAcceptable.lower,
-      acceptable_range_upper: initialAcceptable.upper,
-
-      warning_threshold_display: initialWarning.display,
-      warning_threshold_lower: initialWarning.lower,
-      warning_threshold_upper: initialWarning.upper,
-
-      critical_threshold_display: initialCritical.display,
-      critical_threshold_lower: initialCritical.lower,
-      critical_threshold_upper: initialCritical.upper
-    });
-
-    // Reset the interactive component states to their defaults
-    setAcceptableRangeConfig({ mode: 'default', percent: 5 });
-    setWarningRangeConfig({ mode: 'default', percent: 10 });
-    setCriticalRangeConfig({ mode: 'default', percent: 10 });
-    setAcceptableRangeVIConfig({ mode: 'default', percent: 2 });
-    setWarningRangeVIConfig({ mode: 'default', percent: 2 });
-    setCriticalRangeVIConfig({ mode: 'default', percent: 3 });
-  };
-  */
-  }
-  // This function contains all the data cleaning logic in one place.
   const prepareDataForBackend = (data) => {
-    // Create a mutable copy to work with
     let cleanData = { ...data };
-
-    // Convert nominal_frequency to a number
     if (cleanData.nominal_frequency) {
       cleanData.nominal_frequency = parseFloat(cleanData.nominal_frequency);
     }
-
-    // Perform conversions from other display strings
     cleanData.acceptable_v_imbalance_percent = parseNumericValueFromString(cleanData.acceptable_range_Vdisplay);
     cleanData.warning_v_imbalance_percent = parseNumericValueFromString(cleanData.warning_threshold_Vdisplay);
     cleanData.critical_v_imbalance_percent = parseNumericValueFromString(cleanData.critical_threshold_Vdisplay);
 
-    // Use destructuring to create the final object, removing all display-only fields
     const {
       acceptable_range_display,
       warning_threshold_display,
@@ -418,7 +385,6 @@ const DevicePropertiesPage = () => {
       });
 
       if (!response.ok) {
-        // Handle HTTP errors like 404 or 500
         throw new Error(`Network response was not ok: ${response.statusText}`);
       }
 
@@ -429,7 +395,7 @@ const DevicePropertiesPage = () => {
       console.error('Error saving draft:', error);
       alert('Failed to save draft.');
     } finally {
-      setIsSubmitting(false); // Ensure the loading state is turned off
+      setIsSubmitting(false);
     }
   };
 
@@ -439,9 +405,7 @@ const DevicePropertiesPage = () => {
   };
 
   const handleSubmit = () => {
-    // Use the exact same helper for the final submission
     const finalData = prepareDataForBackend(formData);
-
     console.log('Submitting final form...', finalData);
     alert('Form Submitted!');
   };
@@ -567,208 +531,84 @@ const DevicePropertiesPage = () => {
     setFormData((prev) => ({ ...prev, critical_threshold_Vdisplay: `> ${numericValue}%` }));
   };
 
+  // --- REFACTORED renderField function ---
   const renderField = (field) => {
-    const value = formData[field.id] || '';
-    const fieldLabel = (
-      <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-        {field.label}
-        {field.required && <span style={{ color: 'red' }}> *</span>}
-      </Typography>
-    );
-
-    let inputComponent;
-
-    switch (field.type) {
-      case 'header':
-        return (
-          <Typography
-            variant="subtitle1"
-            sx={{
-              mb: 1,
-              gridColumn: '1 / -1',
-              fontWeight: 'bold',
-              fontSize: '1.1rem',
-              color: 'primary.main',
-              borderBottom: '1px solid #e0e0e0',
-              pb: 1
-            }}
-          >
-            {field.label}
-          </Typography>
-        );
-
-      case 'range-selector': {
-        let config, handleModeChange, handleInputChange;
-        if (field.id === 'acceptable_range_config') {
-          config = acceptableRangeConfig;
-          handleModeChange = handleAcceptableRangeModeChange;
-          handleInputChange = handleAcceptablePercentInputChange;
-        } else if (field.id === 'warning_threshold_config') {
-          config = warningRangeConfig;
-          handleModeChange = handleWarningRangeModeChange;
-          handleInputChange = handleWarningPercentInputChange;
-        } else if (field.id === 'critical_threshold_config') {
-          config = criticalRangeConfig;
-          handleModeChange = handleCriticalRangeModeChange;
-          handleInputChange = handleCriticalPercentInputChange;
-        } else if (field.id === 'acceptable_range_voltage') {
-          config = acceptableRangeVIConfig;
-          handleModeChange = handleAcceptableRangeVIModeChange;
-          handleInputChange = handleAcceptableRangeVIInputChange;
-        } else if (field.id === 'warning_threshold_VIconfig') {
-          config = warningRangeVIConfig;
-          handleModeChange = handleWarningRangeVIModeChange;
-          handleInputChange = handleWarningRangeVIInputChange;
-        } else {
-          config = criticalRangeVIConfig;
-          handleModeChange = handleCriticalRangeVIModeChange;
-          handleInputChange = handleCriticalRangeVIInputChange;
-        }
-        return (
-          <Box sx={{ width: '100%' }}>
-            <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} sm={5}>
-                {fieldLabel}
-              </Grid>
-              <Grid item xs={12} sm={7}>
-                <Button
-                  variant={config.mode === 'default' ? 'contained' : 'outlined'}
-                  onClick={() => handleModeChange('default')}
-                  fullWidth
-                >
-                  {field.buttonLabel || `Value (±${field.defaultPercent}%)`}
-                </Button>
-              </Grid>
-            </Grid>
-            <Box sx={{ mt: 2, px: 0 }}>
-              <TextField
-                type="number"
-                label="Custom Range"
-                value={config.percent}
-                onChange={(e) => handleInputChange(e, field.sliderMin, field.sliderMax)}
-                fullWidth
-                size="small"
-                InputProps={{
-                  startAdornment: <InputAdornment position="start">±</InputAdornment>,
-                  endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                  inputProps: { min: field.sliderMin, max: field.sliderMax, step: field.sliderStep }
-                }}
-              />
-            </Box>
-            <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 2 }}>
-              Calculated Range: <strong>{formData[field.displayFieldId]}</strong>
-            </Typography>
-          </Box>
-        );
-      }
-      case 'hidden':
-        return null;
-      case 'button-group':
-        return (
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={5}>
-              {fieldLabel}
-            </Grid>
-            <Grid item xs={12} sm={7}>
-              <Box>
-                <ButtonGroup variant="outlined" fullWidth>
-                  {field.options.map((option) => (
-                    <Button
-                      key={option.value}
-                      variant={value === option.value ? 'contained' : 'outlined'}
-                      onClick={() => handleInputChange(field.id, option.value)}
-                    >
-                      {option.label}
-                    </Button>
-                  ))}
-                </ButtonGroup>
-                {/* This is the new error message, which only appears if an error exists for this field */}
-                {errors[field.id] && (
-                  <Typography color="error" variant="caption" sx={{ mt: 1 }}>
-                    {errors[field.id]}
-                  </Typography>
-                )}
-              </Box>
-            </Grid>
-          </Grid>
-        );
-      case 'textarea':
-        inputComponent = (
-          <TextField
-            multiline
-            rows={3}
-            value={value}
-            onChange={(e) => handleInputChange(field.id, e.target.value)}
-            fullWidth
-            error={!!errors[field.id]}
-            helperText={errors[field.id] || ''}
-          />
-        );
-        break;
-      case 'file':
-        inputComponent = (
-          <>
-            <Button variant="outlined" component="label" fullWidth>
-              Upload File
-              <input type="file" hidden accept={field.accept} onChange={(e) => handleInputChange(field.id, e.target.files[0])} />
-            </Button>
-            {errors[field.id] && (
-              <Typography color="error" variant="caption">
-                {errors[field.id]}
-              </Typography>
-            )}
-          </>
-        );
-        break;
-      case 'display':
-        return (
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={5}>
-              <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                {field.label}
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={7}>
-              <Typography variant="body1">{formData[field.id]}</Typography>
-            </Grid>
-          </Grid>
-        );
-        break;
-      default:
-        inputComponent = (
-          <TextField
-            type={field.type}
-            value={value}
-            onChange={(e) => handleInputChange(field.id, e.target.value)}
-            fullWidth
-            size="small"
-            error={!!errors[field.id]}
-            helperText={errors[field.id] || ''}
-            InputProps={{
-              endAdornment: field.unit ? <InputAdornment position="end">{field.unit}</InputAdornment> : null,
-
-              inputProps: {
-                min: field.min,
-                max: field.max,
-                step: field.step
-              }
-              // --- CHANGE END ---
-            }}
-          />
-        );
-        break;
+    // Handle simple, non-component types first
+    if (field.type === 'hidden') {
+      return null;
+    }
+    if (field.type === 'header') {
+      return (
+        <Typography
+          variant="subtitle1"
+          sx={{
+            mb: 1,
+            gridColumn: '1 / -1',
+            fontWeight: 'bold',
+            fontSize: '1.1rem',
+            color: 'primary.main',
+            borderBottom: '1px solid #e0e0e0',
+            pb: 1
+          }}
+        >
+          {field.label}
+        </Typography>
+      );
     }
 
-    return (
-      <Grid container spacing={2} alignItems="center">
-        <Grid item xs={12} sm={5}>
-          {fieldLabel}
-        </Grid>
-        <Grid item xs={12} sm={7}>
-          {inputComponent}
-        </Grid>
-      </Grid>
-    );
+    // Special handling for the complex RangeSelectorField
+    if (field.type === 'range-selector') {
+      let props;
+      if (field.id === 'acceptable_range_config') {
+        props = {
+          config: acceptableRangeConfig,
+          onModeChange: handleAcceptableRangeModeChange,
+          onPercentChange: handleAcceptablePercentInputChange
+        };
+      } else if (field.id === 'warning_threshold_config') {
+        props = {
+          config: warningRangeConfig,
+          onModeChange: handleWarningRangeModeChange,
+          onPercentChange: handleWarningPercentInputChange
+        };
+      } else if (field.id === 'critical_threshold_config') {
+        props = {
+          config: criticalRangeConfig,
+          onModeChange: handleCriticalRangeModeChange,
+          onPercentChange: handleCriticalPercentInputChange
+        };
+      } else if (field.id === 'acceptable_range_voltage') {
+        props = {
+          config: acceptableRangeVIConfig,
+          onModeChange: handleAcceptableRangeVIModeChange,
+          onPercentChange: handleAcceptableRangeVIInputChange
+        };
+      } else if (field.id === 'warning_threshold_VIconfig') {
+        props = {
+          config: warningRangeVIConfig,
+          onModeChange: handleWarningRangeVIModeChange,
+          onPercentChange: handleWarningRangeVIInputChange
+        };
+      } else {
+        // 'critical_threshold_VIconfig'
+        props = {
+          config: criticalRangeVIConfig,
+          onModeChange: handleCriticalRangeVIModeChange,
+          onPercentChange: handleCriticalRangeVIInputChange
+        };
+      }
+      return <RangeSelectorField field={field} calculatedValue={formData[field.displayFieldId]} {...props} />;
+    }
+
+    // For all other types, use our component map
+    const Component = fieldComponentMap[field.type];
+    if (!Component) {
+      console.warn(`No component found for field type: ${field.type}`);
+      return null; // Or render a default component
+    }
+    const value = field.id === 'cb_ir_setting' ? irSettingDisplayValue : formData[field.id];
+    const displayValue = value === undefined || value === null ? '' : String(value);
+    return <Component field={field} value={formData[field.id] || ''} error={errors[field.id]} onChange={handleInputChange} />;
   };
 
   if (isLoading) {
@@ -819,7 +659,6 @@ const DevicePropertiesPage = () => {
         </Box>
 
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-          {/* This is the new error message, which only appears if `formError` has text */}
           {formError && (
             <Typography color="error" variant="body2">
               {formError}
