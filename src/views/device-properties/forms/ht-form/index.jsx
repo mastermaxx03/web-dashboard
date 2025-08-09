@@ -5,6 +5,7 @@ import { section1Fields } from './section1';
 import { section2Fields } from './section2';
 import { section3Fields } from './section3';
 import { section4Fields } from './section4';
+import { section5Fields } from './section5';
 
 // the final structure of our multi-step form here.
 export const htFormSteps = [
@@ -25,7 +26,7 @@ export const htFormSteps = [
     fields: section4Fields
   },
   {
-    label: 'Section 5',
-    fields: []
+    label: 'Energy',
+    fields: section5Fields // This will be defined later
   }
 ];

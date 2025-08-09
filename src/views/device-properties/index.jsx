@@ -623,7 +623,6 @@ const DevicePropertiesPage = () => {
           onPercentChange: handleWarningRangeVIInputChange
         };
       } else {
-        // 'critical_threshold_VIconfig'
         props = {
           config: criticalRangeVIConfig,
           onModeChange: handleCriticalRangeVIModeChange,
@@ -633,7 +632,6 @@ const DevicePropertiesPage = () => {
       return <RangeSelectorField field={field} calculatedValue={formData[field.displayFieldId]} {...props} />;
     }
 
-    // For all other types, use our component map
     const Component = fieldComponentMap[field.type];
     if (!Component) {
       console.warn(`No component found for field type: ${field.type}`);

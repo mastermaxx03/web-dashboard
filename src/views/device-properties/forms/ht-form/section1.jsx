@@ -46,7 +46,7 @@ export const section1Fields = [
       { label: '22 kV', value: 22 },
       { label: '33 kV', value: 33 }
     ],
-    defaultValue: '11',
+    defaultValue: '',
     required: true
   },
   {
