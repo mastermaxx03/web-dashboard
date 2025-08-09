@@ -245,6 +245,39 @@ const DevicePropertiesPage = () => {
       // Then, we use this processedValue to update our state.
       setFormData((prevData) => {
         const newData = { ...prevData, [fieldId]: processedValue };
+        const phaseFields = ['r_phase_rated_power', 'y_phase_rated_power', 'b_phase_rated_power'];
+        if (phaseFields.includes(fieldId)) {
+          // 1. Read the values, using the just-updated value from 'newData'
+          const r = parseFloat(newData.r_phase_rated_power) || 0;
+          const y = parseFloat(newData.y_phase_rated_power) || 0;
+          const b = parseFloat(newData.b_phase_rated_power) || 0;
+
+          // 2. Calculate the sum
+          const total = r + y + b;
+
+          // 3. Update the total rated power field in our new state
+          newData.total_rated_power_display = total;
+          if (total > 0) {
+            const lowerBound = total;
+            const upperBound = total * 1.1;
+
+            // 1. Create the display strings with new variable names
+            newData.power_threshold_acceptable_display = `≤ ${lowerBound.toFixed(2)} KVA`;
+            newData.power_threshold_warning_display = `${lowerBound.toFixed(2)} KVA to ${upperBound.toFixed(2)} KVA`;
+            newData.power_threshold_critical_display = `> ${upperBound.toFixed(2)} KVA`;
+
+            // 2. Store the raw numbers for the backend with new variable names
+            newData.power_threshold_acceptable_upper = lowerBound;
+            newData.power_threshold_warning_lower = lowerBound;
+            newData.power_threshold_warning_upper = upperBound;
+            newData.power_threshold_critical_lower = upperBound;
+          } else {
+            // Handle case where total power is 0 or invalid
+            newData.power_threshold_acceptable_display = 'N/A';
+            newData.power_threshold_warning_display = 'N/A';
+            newData.power_threshold_critical_display = 'N/A';
+          }
+        }
         if (fieldId === 'cb_ir_setting') {
           const num = parseFloat(processedValue);
           newData.cb_ir_setting_decimal = isNaN(num) ? '0.00' : (num / 100).toFixed(2);
@@ -608,7 +641,7 @@ const DevicePropertiesPage = () => {
     }
     const value = field.id === 'cb_ir_setting' ? irSettingDisplayValue : formData[field.id];
     const displayValue = value === undefined || value === null ? '' : String(value);
-    return <Component field={field} value={formData[field.id] || ''} error={errors[field.id]} onChange={handleInputChange} />;
+    return <Component field={field} value={formData[field.id] ?? ''} error={errors[field.id]} onChange={handleInputChange} />;
   };
 
   if (isLoading) {

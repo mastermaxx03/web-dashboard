@@ -10,7 +10,9 @@ export const DisplayField = ({ field, value }) => (
       </Typography>
     </Grid>
     <Grid item xs={12} sm={7}>
-      <Typography variant="body1">{value}</Typography>
+      <Typography variant="body1">
+        {value} {field.unit}
+      </Typography>
     </Grid>
   </Grid>
 );

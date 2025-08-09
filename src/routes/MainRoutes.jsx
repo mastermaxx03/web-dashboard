@@ -18,7 +18,7 @@ const UtilsShadow = Loadable(lazy(() => import('views/utilities/Shadow')));
 
 // sample page routing
 const SamplePage = Loadable(lazy(() => import('views/sample-page')));
-const Dashboard2 = Loadable(lazy(() => import('views/dashboard2')));
+const Dashboard2 = Loadable(lazy(() => import('views/dashboard/Default')));
 const Alerts = Loadable(lazy(() => import('views/alerts')));
 const AiInsights = Loadable(lazy(() => import('views/ai-insights')));
 const Reports = Loadable(lazy(() => import('views/reports')));
