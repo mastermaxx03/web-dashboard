@@ -9,6 +9,7 @@ import RangeSelectorField from './forms/components/RangeSelectorField';
 import ButtonGroupField from './forms/components/ButtonGroupField';
 import TextInputField from './forms/components/TextInputField';
 import { DisplayField, FileField } from './forms/components/OtherFields';
+import DateField from './forms/components/DateField';
 
 const ltMachineFormSteps = [
   {
@@ -116,7 +117,8 @@ const fieldComponentMap = {
   number: TextInputField,
   file: FileField,
   display: DisplayField,
-  'range-selector': RangeSelectorField
+  'range-selector': RangeSelectorField,
+  date: DateField
 };
 
 const DevicePropertiesPage = () => {
@@ -589,8 +591,8 @@ const DevicePropertiesPage = () => {
       );
     }
 
-    // Special handling for the complex RangeSelectorField
     if (field.type === 'range-selector') {
+      // Special handling for the complex RangeSelectorField
       let props;
       if (field.id === 'acceptable_range_config') {
         props = {
