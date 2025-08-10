@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Box, Paper, Typography, Stepper, Step, StepLabel, Grid, Button, CircularProgress } from '@mui/material';
-
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { htFormSteps } from './forms/ht-form';
 import { transformDataForBackend } from './dataTransformer';
 
@@ -10,6 +10,7 @@ import ButtonGroupField from './forms/components/ButtonGroupField';
 import TextInputField from './forms/components/TextInputField';
 import { DisplayField, FileField } from './forms/components/OtherFields';
 import DateField from './forms/components/DateField';
+import { set } from 'lodash-es';
 
 const ltMachineFormSteps = [
   {
@@ -120,6 +121,10 @@ const fieldComponentMap = {
   'range-selector': RangeSelectorField,
   date: DateField
 };
+const validationLibrary = {
+  required: (value) => value !== null && value !== '' && value !== undefined,
+  isEmail: (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+};
 
 const DevicePropertiesPage = () => {
   const { deviceId } = useParams();
@@ -141,6 +146,8 @@ const DevicePropertiesPage = () => {
   //to display error message
   const [formError, setFormError] = useState('');
   //backend state
+  const [isStepValidated, setIsStepValidated] = useState(false); //user passed validated data or not
+  const [isStepSaved, setIsStepSaved] = useState(false); //user saved the data for that particular step or not
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -405,10 +412,10 @@ const DevicePropertiesPage = () => {
 
     return finalPayload;
   };
-  const handleSaveDraft = async () => {
-    const backendPayload = transformDataForBackend(formData, deviceId);
-    console.log('Saving cleaned draft data to backend:', backendPayload);
 
+  const saveCurrentDraft = async () => {
+    const backendPayload = transformDataForBackend(formData, deviceId);
+    console.log('Saving draft to backend...', backendPayload);
     setIsSubmitting(true);
     try {
       const response = await fetch('http://3.7.222.84:9006/api/v1/policy', {
@@ -418,31 +425,80 @@ const DevicePropertiesPage = () => {
         },
         body: JSON.stringify(backendPayload)
       });
-
       if (!response.ok) {
         throw new Error(`Network response was not ok: ${response.statusText}`);
       }
-
       const result = await response.json();
       console.log('Success:', result);
       alert('Draft Saved Successfully!');
+
+      // --- 2. ADD THIS on success ---
+      setIsStepSaved(true); // Update our component's memory
+      return true; // Report success
     } catch (error) {
-      console.error('Error saving draft:', error);
-      alert('Failed to save draft.');
+      console.error('Error saving draft: ', error);
+      alert('Failed to Save Draft. Please try again.');
+      return false;
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleValidate = () => {
-    console.log('Validating current step...', formData);
-    alert('Validation Complete!');
-  };
+  const validateCurrentStep = () => {
+    console.log('Validation engine has been called!');
+    const currentFormFields = formSteps[activeStep].fields;
+    const newErrors = {};
+    let isStepValid = true;
+    for (const field of currentFormFields) {
+      const value = formData[field.id];
+      if (field.required && !value) {
+        newErrors[field.id] = `${field.label} is required.`;
+        isStepValid = false;
+        continue; // Skips to the next field
+      }
+      if (field.rules) {
+        for (const rule of field.rules) {
+          const validator = validationLibrary[rule.type];
 
-  const handleSubmit = () => {
-    const finalData = prepareDataForBackend(formData);
-    console.log('Submitting final form...', finalData);
-    alert('Form Submitted!');
+          // Run the advanced validation rule. If it fails...
+          if (validator && !validator(value)) {
+            newErrors[field.id] = rule.message;
+            isStepValid = false;
+            break; // Stop checking other rules for this failed field
+          }
+        }
+      }
+    }
+    setErrors(newErrors);
+    setIsStepValidated(isStepValid);
+    return isStepValid;
+  };
+  const handleValidateClick = () => {
+    validateCurrentStep();
+  };
+  const handleSaveDraftClick = async () => {
+    const isValidationOk = validateCurrentStep();
+
+    if (!isValidationOk) {
+      console.log('Validation failed. Halting save process.');
+      return false;
+    }
+
+    console.log('Validation passed. Proceeding to save.');
+    return await saveCurrentDraft();
+  };
+  const handleNextClick = async () => {
+    const isSaveSuccessful = await handleSaveDraftClick();
+    if (isSaveSuccessful) {
+      setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    }
+  };
+  const handleSubmitClick = async () => {
+    const isSaveSuccessful = await handleSaveDraftClick();
+
+    if (isSaveSuccessful) {
+      alert('FORM SUBMITTED SUCCESSFULLY!');
+    }
   };
 
   const handleAcceptableRangeModeChange = (mode) => {
@@ -643,6 +699,18 @@ const DevicePropertiesPage = () => {
     const displayValue = value === undefined || value === null ? '' : String(value);
     return <Component field={field} value={formData[field.id] ?? ''} error={errors[field.id]} onChange={handleInputChange} />;
   };
+  useEffect(() => {
+    setIsStepValidated(false);
+    setIsStepSaved(false);
+  }, [formData]);
+
+  // This "watcher" resets status when the user moves to a new step.
+  useEffect(() => {
+    console.log(`Moving to step ${activeStep}. Wiping status clean.`);
+    setIsStepValidated(false);
+    setIsStepSaved(false);
+    setErrors({}); // Also clear any errors from the previous step
+  }, [activeStep]);
 
   if (isLoading) {
     return (
@@ -680,14 +748,33 @@ const DevicePropertiesPage = () => {
           ))}
         </Grid>
       </Box>
+      {/*to display message if validation is incomplete*/}
+      {Object.keys(errors).length > 0 && (
+        <Box sx={{ mt: 2, mb: 1, textAlign: 'center' }}>
+          <Typography color="error" variant="body2" sx={{ fontWeight: 'medium' }}>
+            Please complete all mandatory fields for validation.
+          </Typography>
+        </Box>
+      )}
+      {/*to display success message on complete validation */}
+      {isStepValidated && Object.keys(errors).length === 0 && (
+        <Box
+          sx={{ mt: 2, mb: 1, textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'success.main' }}
+        >
+          <CheckCircleIcon sx={{ mr: 0.5 }} />
+          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+            Validation Complete
+          </Typography>
+        </Box>
+      )}
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4, alignItems: 'center' }}>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button variant="outlined" color="secondary" onClick={handleReset}>
             Reset
           </Button>
-          <Button variant="outlined" color="primary" onClick={handleSaveDraft}>
-            Save Draft
+          <Button onClick={handleSaveDraftClick} disabled={isSubmitting}>
+            {isSubmitting ? <CircularProgress size={24} /> : 'Save Draft'}
           </Button>
         </Box>
 
@@ -703,16 +790,14 @@ const DevicePropertiesPage = () => {
               Back
             </Button>
           )}
-          <Button variant="outlined" onClick={handleValidate}>
-            Validate
-          </Button>
+          <Button onClick={handleValidateClick}>Validate</Button>
 
-          {activeStep < steps.length - 1 ? (
-            <Button variant="contained" onClick={handleNext}>
+          {activeStep < formSteps.length - 1 ? (
+            <Button variant="contained" onClick={handleNextClick} disabled={isSubmitting}>
               Next
             </Button>
           ) : (
-            <Button variant="contained" color="primary" onClick={handleSubmit}>
+            <Button variant="contained" color="primary" onClick={handleSubmitClick} disabled={isSubmitting}>
               Submit
             </Button>
           )}
