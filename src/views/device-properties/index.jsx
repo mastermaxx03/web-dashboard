@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { Box, Paper, Typography, Stepper, Step, StepLabel, Grid, Button, CircularProgress } from '@mui/material';
+import { Box, Paper, Typography, Stepper, Step, StepLabel, Grid, Button, CircularProgress, Modal } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { htFormSteps } from './forms/ht-form';
+import { getHtFormSteps } from './forms/ht-form';
 import { transformDataForBackend } from './dataTransformer';
 
 import RangeSelectorField from './forms/components/RangeSelectorField';
@@ -10,7 +10,10 @@ import ButtonGroupField from './forms/components/ButtonGroupField';
 import TextInputField from './forms/components/TextInputField';
 import { DisplayField, FileField } from './forms/components/OtherFields';
 import DateField from './forms/components/DateField';
+import DateTimeField from './forms/components/DateTimeField';
 import { set } from 'lodash-es';
+import { allTiers } from '/src/config/powerFactorTiers.jsx';
+import { findTierByLevel } from '/src/utils/calculator';
 
 const ltMachineFormSteps = [
   {
@@ -21,17 +24,6 @@ const ltMachineFormSteps = [
     ]
   }
 ];
-
-const getFormConfigForPropertyType = (propertyType) => {
-  switch (String(propertyType)) {
-    case '1':
-      return htFormSteps;
-    case '5':
-      return ltMachineFormSteps;
-    default:
-      return [{ label: 'Configuration Missing', fields: [] }];
-  }
-};
 
 const calculateAcceptableRange = (nominalVoltage, percent) => {
   const nominal = parseInt(nominalVoltage, 10);
@@ -119,11 +111,33 @@ const fieldComponentMap = {
   file: FileField,
   display: DisplayField,
   'range-selector': RangeSelectorField,
-  date: DateField
+  date: DateField,
+  datetime: DateTimeField
 };
+
 const validationLibrary = {
   required: (value) => value !== null && value !== '' && value !== undefined,
-  isEmail: (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
+  isEmail: (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
+
+  range: (value, limits) => {
+    if (!limits) {
+      console.error("VALIDATION ERROR: A 'range' rule in your configuration is missing its 'limits' object!");
+      return false;
+    }
+
+    if (!value) {
+      return true;
+    }
+
+    const num = parseFloat(value);
+
+    if (isNaN(num)) {
+      return false;
+    }
+
+    return num >= limits.min && num <= limits.max;
+  }
 };
 
 const DevicePropertiesPage = () => {
@@ -149,7 +163,18 @@ const DevicePropertiesPage = () => {
   const [isStepValidated, setIsStepValidated] = useState(false); //user passed validated data or not
   const [isStepSaved, setIsStepSaved] = useState(false); //user saved the data for that particular step or not
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPfModalOpen, setIsPfModalOpen] = useState(false);
 
+  const getFormConfigForPropertyType = (propertyType) => {
+    switch (String(propertyType)) {
+      case '1':
+        return getHtFormSteps(() => setIsPfModalOpen(true));
+      case '5':
+        return ltMachineFormSteps;
+      default:
+        return [{ label: 'Configuration Missing', fields: [] }];
+    }
+  };
   useEffect(() => {
     const loadFormForDevice = async () => {
       setIsLoading(true);
@@ -166,6 +191,7 @@ const DevicePropertiesPage = () => {
 
       const propertyType = currentNode.data.propertyType;
       const currentFormSteps = getFormConfigForPropertyType(propertyType);
+      console.log('Final array of steps being set to state:', currentFormSteps);
       setFormSteps(currentFormSteps);
 
       const initialValues = {};
@@ -220,19 +246,41 @@ const DevicePropertiesPage = () => {
     loadFormForDevice();
   }, [deviceId]);
 
-  const handleNext = () => {
-    const currentStepFields = formSteps[activeStep].fields;
-    const newErrors = {};
-    let isValid = true;
+  //section 6
+  useEffect(() => {
+    const pfLevel = parseFloat(formData.pf_target);
+    const tier = findTierByLevel(pfLevel, allTiers);
 
-    currentStepFields.forEach((field) => {
-      if (field.required && (!formData[field.id] || formData[field.id] === '')) {
-        newErrors[field.id] = `${field.label} is required`; // Dynamic message
-        isValid = false;
-      }
-    });
+    // Determine the new values first
+    let newRateDisplay = 'Invalid Level';
+    let newRangeDisplay = 'N/A';
+    if (tier) {
+      newRateDisplay = `${tier.rate}% ${tier.type}`;
+      newRangeDisplay = `${tier.min} to ${tier.max}`;
+    }
 
-    setErrors(newErrors);
+    if (formData.pf_rate_display !== newRateDisplay || formData.pf_range_display !== newRangeDisplay) {
+      setFormData((prevData) => ({
+        ...prevData,
+        pf_rate_display: newRateDisplay,
+        pf_range_display: newRangeDisplay
+      }));
+    }
+  }, [formData.pf_target, formData.pf_rate_display, formData.pf_range_display]);
+  {
+    /*}  const handleNext = () => {
+      const currentStepFields = formSteps[activeStep].fields;
+      const newErrors = {};
+      let isValid = true;
+
+      currentStepFields.forEach((field) => {
+        if (field.required && (!formData[field.id] || formData[field.id] === '')) {
+          newErrors[field.id] = `${field.label} is required`; // Dynamic message
+          isValid = false;
+        }
+      });
+
+      setErrors(newErrors);
 
     if (isValid) {
       setFormError(''); // Clear the error message on success
@@ -241,7 +289,8 @@ const DevicePropertiesPage = () => {
       setFormError('Please fill out all required fields.'); // Set the error message on failure
     }
   };
-
+  */
+  }
   const handleBack = () => {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
@@ -250,10 +299,8 @@ const DevicePropertiesPage = () => {
     (fieldId, value) => {
       const field = formSteps.flatMap((step) => step.fields).find((f) => f.id === fieldId);
 
-      const processedValue = field?.type === 'number' ? parseFloat(value) || '' : value;
-      // Then, we use this processedValue to update our state.
       setFormData((prevData) => {
-        const newData = { ...prevData, [fieldId]: processedValue };
+        const newData = { ...prevData, [fieldId]: value };
         const phaseFields = ['r_phase_rated_power', 'y_phase_rated_power', 'b_phase_rated_power'];
         if (phaseFields.includes(fieldId)) {
           // 1. Read the values, using the just-updated value from 'newData'
@@ -288,7 +335,7 @@ const DevicePropertiesPage = () => {
           }
         }
         if (fieldId === 'cb_ir_setting') {
-          const num = parseFloat(processedValue);
+          const num = parseFloat(value);
           newData.cb_ir_setting_decimal = isNaN(num) ? '0.00' : (num / 100).toFixed(2);
         }
         if (fieldId === 'cb_rated_current_in' || fieldId === 'cb_ir_setting_decimal') {
@@ -303,9 +350,9 @@ const DevicePropertiesPage = () => {
         }
 
         if (fieldId === 'nominal_ht_voltage') {
-          const acceptableResult = calculateAcceptableRange(processedValue, acceptableRangeConfig.percent);
-          const warningResult = calculateWarningRange(processedValue, warningRangeConfig.percent);
-          const criticalResult = calculateCriticalRange(processedValue, criticalRangeConfig.percent);
+          const acceptableResult = calculateAcceptableRange(value, acceptableRangeConfig.percent);
+          const warningResult = calculateWarningRange(value, warningRangeConfig.percent);
+          const criticalResult = calculateCriticalRange(value, criticalRangeConfig.percent);
 
           newData.acceptable_range_display = acceptableResult.display;
           newData.acceptable_range_lower = acceptableResult.lower;
@@ -317,7 +364,7 @@ const DevicePropertiesPage = () => {
           newData.critical_threshold_lower = criticalResult.lower;
           newData.critical_threshold_upper = criticalResult.upper;
         } else if (fieldId === 'nominal_frequency') {
-          const newFrequencyThresholds = calculateFrequencyThresholds(processedValue);
+          const newFrequencyThresholds = calculateFrequencyThresholds(value);
           return { ...newData, ...newFrequencyThresholds };
         }
 
@@ -461,7 +508,7 @@ const DevicePropertiesPage = () => {
           const validator = validationLibrary[rule.type];
 
           // Run the advanced validation rule. If it fails...
-          if (validator && !validator(value)) {
+          if (validator && !validator(value, rule.limits)) {
             newErrors[field.id] = rule.message;
             isStepValid = false;
             break; // Stop checking other rules for this failed field
@@ -630,20 +677,23 @@ const DevicePropertiesPage = () => {
     }
     if (field.type === 'header') {
       return (
-        <Typography
-          variant="subtitle1"
-          sx={{
-            mb: 1,
-            gridColumn: '1 / -1',
-            fontWeight: 'bold',
-            fontSize: '1.1rem',
-            color: 'primary.main',
-            borderBottom: '1px solid #e0e0e0',
-            pb: 1
-          }}
-        >
-          {field.label}
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography
+            variant="subtitle1"
+            sx={{
+              fontWeight: 'bold',
+              fontSize: '1.1rem',
+              color: 'primary.main',
+              borderBottom: '1px solid #e0e0e0',
+              pb: 1,
+              flexGrow: 1
+            }}
+          >
+            {field.label}
+          </Typography>
+          {/* This new line renders the icon if the property exists */}
+          {field.renderAccessory && field.renderAccessory()}
+        </Box>
       );
     }
 
@@ -803,6 +853,44 @@ const DevicePropertiesPage = () => {
           )}
         </Box>
       </Box>
+
+      {/* info section 6 */}
+      <Modal open={isPfModalOpen} onClose={() => setIsPfModalOpen(false)}>
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 450,
+            bgcolor: 'background.paper',
+            border: '2px solid #000',
+            boxShadow: 24,
+            p: 4,
+            borderRadius: 2
+          }}
+        >
+          <Typography variant="h6" component="h2">
+            Power Factor Tiers Reference
+          </Typography>
+          <Typography sx={{ mt: 2 }}>The user enters a "PF Target Level" to see the resulting rate.</Typography>
+          <Box sx={{ mt: 2, maxHeight: 300, overflow: 'auto' }}>
+            {allTiers.map((tier) => (
+              <Box key={tier.level} sx={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', py: 1 }}>
+                <Typography variant="body2">
+                  Level: <strong>{tier.level.toFixed(2)}</strong>
+                </Typography>
+                <Typography variant="body2">
+                  ({tier.min} - {tier.max})
+                </Typography>
+                <Typography variant="body2" color={tier.type === 'Incentive' ? 'success.main' : 'error.main'} sx={{ fontWeight: 'bold' }}>
+                  {tier.rate}% {tier.type}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+      </Modal>
     </Paper>
   );
 };

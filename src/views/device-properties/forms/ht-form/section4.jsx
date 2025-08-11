@@ -8,7 +8,7 @@ export const section4Fields = [
     label: 'R_PHASE RATED POWER',
     type: 'number',
     unit: 'KVA',
-    defaultValue: 0,
+    defaultValue: 11,
     required: true
   },
   {
@@ -16,7 +16,7 @@ export const section4Fields = [
     label: 'Y_PHASE RATED POWER',
     type: 'number',
     unit: 'KVA',
-    defaultValue: 0,
+    defaultValue: 12,
     min: 0,
     required: true
   },
@@ -25,7 +25,7 @@ export const section4Fields = [
     label: 'B_PHASE RATED POWER',
     type: 'number',
     unit: 'KVA',
-    defaultValue: 0,
+    defaultValue: 21,
     min: 0,
     required: true
   },

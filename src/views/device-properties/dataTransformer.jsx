@@ -10,8 +10,8 @@ export const transformDataForBackend = (formData, deviceId) => {
 
   vKeys.forEach((key) => {
     backendPayload.jsonObj[key] = {
-      min: formData.acceptable_range_lower * 1000,
-      max: formData.acceptable_range_upper * 1000,
+      min: parseFloat(formData.acceptable_range_lower) * 1000,
+      max: parseFloat(formData.acceptable_range_upper) * 1000,
       SI: 'V'
     };
   });

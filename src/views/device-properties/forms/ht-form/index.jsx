@@ -6,11 +6,11 @@ import { section2Fields } from './section2';
 import { section3Fields } from './section3';
 import { section4Fields } from './section4';
 import { section5Fields } from './section5';
-import { section6Fields } from './section6';
+import { getSection6Fields } from './section6';
 import { section7Fields } from './section7';
 
 // the final structure of our multi-step form here.
-export const htFormSteps = [
+export const getHtFormSteps = (onPfInfoClick) => [
   {
     label: 'Static & Default Settings',
     fields: section1Fields // Use the imported fields
@@ -31,6 +31,6 @@ export const htFormSteps = [
     label: 'Energy',
     fields: section5Fields // This will be defined later
   },
-  { label: 'Power Factor', fields: section6Fields },
+  { label: 'Power Factor', fields: getSection6Fields(onPfInfoClick) },
   { label: 'General Fields', fields: section7Fields }
 ];

@@ -30,7 +30,7 @@ export const section3Fields = [
     label: 'CT PRIMARY CURRENT',
     type: 'number',
     unit: 'A',
-    defaultValue: '',
+    defaultValue: 11,
     required: true
   },
   {
@@ -38,7 +38,7 @@ export const section3Fields = [
     label: 'CT SECONDARY CURRENT',
     type: 'number',
     unit: 'A',
-    defaultValue: '',
+    defaultValue: 12,
     required: true
   },
 
@@ -52,7 +52,7 @@ export const section3Fields = [
     label: 'CT PRIMARY CURRENT',
     type: 'number',
     unit: 'A',
-    defaultValue: '',
+    defaultValue: 21,
     required: true
   },
   {
@@ -60,7 +60,7 @@ export const section3Fields = [
     label: 'CT SECONDARY CURRENT',
     type: 'number',
     unit: 'A',
-    defaultValue: '',
+    defaultValue: 22,
     required: true
   },
 
@@ -74,7 +74,7 @@ export const section3Fields = [
     label: 'CT PRIMARY CURRENT',
     type: 'number',
     unit: 'A',
-    defaultValue: '',
+    defaultValue: 24,
     required: true
   },
   {
@@ -82,7 +82,7 @@ export const section3Fields = [
     label: 'CT SECONDARY CURRENT',
     type: 'number',
     unit: 'A',
-    defaultValue: '',
+    defaultValue: 25,
     required: true
   },
   {
@@ -119,13 +119,13 @@ export const section3Fields = [
     label: 'Circuit Breaker - In (Rated Current)',
     type: 'number',
     unit: 'A',
-    defaultValue: '',
+    defaultValue: 22,
     required: true
   },
   {
     label: 'Circuit Breaker – Ir Setting (0-100)',
     type: 'number',
-    defaultValue: '',
+    defaultValue: 23,
     required: true,
     min: 0,
     max: 100,
@@ -136,7 +136,7 @@ export const section3Fields = [
     id: 'cb_ir_setting_decimal',
     label: 'Calculated Multiplication Factor',
     type: 'display',
-    defaultValue: '0.00'
+    defaultValue: '0.67'
   },
   {
     id: 'cb_ir_long_time_setting',

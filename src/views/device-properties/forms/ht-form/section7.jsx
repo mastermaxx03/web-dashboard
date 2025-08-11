@@ -34,6 +34,13 @@ export const section7Fields = [
     defaultValue: ''
   },
   {
+    id: 'maintenance_schedule',
+    label: 'Maintenance Schedule',
+    type: 'datetime', // This will render our new DateTimeField component
+    defaultValue: '',
+    rules: [{ type: 'required', message: 'Maintenance schedule is required.' }]
+  },
+  {
     id: 'technician_name',
     label: 'Technician Name',
     type: 'text',

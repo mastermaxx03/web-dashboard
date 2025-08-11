@@ -5,14 +5,14 @@ export const section1Fields = [
     id: 'panel_name',
     label: 'Name of HT Panel',
     type: 'text',
-    defaultValue: '',
+    defaultValue: 'a',
     required: true // This field is mandatory
   },
   {
     id: 'panel_id',
     label: 'Panel ID',
     type: 'text',
-    defaultValue: '',
+    defaultValue: 'a',
     required: true // This field is mandatory
   },
   {
