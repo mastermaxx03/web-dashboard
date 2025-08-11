@@ -883,7 +883,13 @@ const DevicePropertiesPage = () => {
                 <Typography variant="body2">
                   ({tier.min} - {tier.max})
                 </Typography>
-                <Typography variant="body2" color={tier.type === 'Incentive' ? 'success.main' : 'error.main'} sx={{ fontWeight: 'bold' }}>
+                <Typography
+                  // This is the new, nested logic
+                  color={
+                    tier.type === 'Incentive' ? 'success.main' : tier.type === 'Penalty' ? 'error.main' : 'primary.main' // This is the default color for "Neutral"
+                  }
+                  sx={{ fontWeight: 'bold' }}
+                >
                   {tier.rate}% {tier.type}
                 </Typography>
               </Box>
