@@ -16,6 +16,7 @@ export const getSection6Fields = (onInfoClick) => [
     id: 'pf_target',
     label: 'PF Target Level',
     type: 'number',
+    defaultValue: '',
     required: true,
     helperText: 'Enter a PF Level from the reference table (e.g., 0.98)',
     rules: [
@@ -42,6 +43,7 @@ export const getSection6Fields = (onInfoClick) => [
     id: 'pf_warning_threshold',
     label: 'Warning Threshold',
     type: 'number',
+    defaultValue: '',
     required: true,
     rules: [
       {
@@ -55,6 +57,7 @@ export const getSection6Fields = (onInfoClick) => [
     id: 'pf_critical_threshold',
     label: 'Critical Threshold',
     type: 'number',
+    defaultValue: '',
     required: true,
     rules: [
       // This was likely missing
