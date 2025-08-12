@@ -14,6 +14,9 @@ import DateTimeField from './forms/components/DateTimeField';
 import { set } from 'lodash-es';
 import { allTiers } from '/src/config/powerFactorTiers.jsx';
 import { findTierByLevel } from '/src/utils/calculator';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { toast } from 'react-toastify';
 
 const ltMachineFormSteps = [
   {
@@ -477,14 +480,16 @@ const DevicePropertiesPage = () => {
       }
       const result = await response.json();
       console.log('Success:', result);
-      alert('Draft Saved Successfully!');
+      toast.success('Draft Saved Successfully!');
+      //  alert('Draft Saved Successfully!');
 
       // --- 2. ADD THIS on success ---
       setIsStepSaved(true); // Update our component's memory
       return true; // Report success
     } catch (error) {
       console.error('Error saving draft: ', error);
-      alert('Failed to Save Draft. Please try again.');
+      //   alert('Failed to Save Draft. Please try again.');
+      toast.error('Failed to Save Draft. Please try again.');
       return false;
     } finally {
       setIsSubmitting(false);
@@ -544,7 +549,7 @@ const DevicePropertiesPage = () => {
     const isSaveSuccessful = await handleSaveDraftClick();
 
     if (isSaveSuccessful) {
-      alert('FORM SUBMITTED SUCCESSFULLY!');
+      toast.success('FORM SUBMITTED SUCCESSFULLY!');
     }
   };
 

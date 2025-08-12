@@ -8,7 +8,7 @@ import Canvas2Page from '../views/canvas2';
 // dashboard routing
 const CanvasPage = Loadable(lazy(() => import('views/canvas/index.jsx')));
 const Canvas2 = Loadable(lazy(() => import('views/canvas2/index.jsx')));
-
+const RealtimeLayoutPage = Loadable(lazy(() => import('views/realtime-layout')));
 const DashboardDefault = Loadable(lazy(() => import('views/dashboard/Default')));
 
 // utilities routing
@@ -105,6 +105,10 @@ const MainRoutes = {
     {
       path: '/canvas2/device-properties/:deviceId',
       element: <DevicePropertiesPage />
+    },
+    {
+      path: '/realtime-dashboard',
+      element: <RealtimeLayoutPage />
     }
   ]
 };
