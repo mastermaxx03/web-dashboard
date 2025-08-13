@@ -27,7 +27,7 @@ const dashboard = {
       icon: icons.IconDashboard,
       breadcrumbs: false
     },
-    { id: 'canvas2', title: 'Canvas-2', type: 'items', url: '/canvas2', icon: icons.IconDashboard, breadcrumbs: false },
+    { id: 'canvas2', title: 'Canvas', type: 'item', url: '/canvas2', icon: icons.IconDashboard, breadcrumbs: false },
     {
       id: 'default',
       title: 'Alerts',

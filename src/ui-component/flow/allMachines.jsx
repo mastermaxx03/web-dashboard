@@ -70,6 +70,10 @@ const edgeTypes = {
 // const hierarchyData
 
 function buildGraph(tree, parent = null, nodes = [], edges = [], color = null) {
+  if (!tree || !tree.id) {
+    console.error('Skipping invalid node in hierarchy:', tree);
+    return { nodes, edges }; // Safely skip this invalid entry
+  }
   let feederColor = color;
   if (tree.id.startsWith('feeder')) feederColor = COLORS[tree.id] || null;
 
@@ -286,6 +290,8 @@ const MyIndustryFlow = () => {
   const { nodes, edges } = useMemo(() => {
     if (!hierarchyData) return { nodes: [], edges: [] };
     const { nodes, edges } = buildGraph(hierarchyData);
+    console.log('Nodes being sent to layout:', JSON.stringify(nodes, null, 2));
+
     const laidOutNodes = layoutElementsWithRowWrap(nodes, edges);
     return { nodes: laidOutNodes, edges };
   }, [hierarchyData]);

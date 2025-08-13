@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import ReactFlow, { ReactFlowProvider, addEdge, useNodesState, useEdgesState, Controls } from 'reactflow';
 import CustomNode from './CustomNode';
 import InspectorPanel from './InspectorPanel';
-import { Box, Paper, Typography, IconButton, Slide, TextField, Button, Menu, MenuItem } from '@mui/material';
+import { Box, Paper, Typography, IconButton, Slide, TextField, Button, Menu, MenuItem, Snackbar, Alert } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
@@ -69,6 +69,8 @@ const getRandomColor = () => {
 export default function CanvasPage() {
   const reactFlowWrapper = useRef(null);
   const isDraggingFromSidebar = useRef(false);
+  //deletion check
+  const protectedParentIds = useRef(new Set());
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
@@ -87,6 +89,9 @@ export default function CanvasPage() {
   const currentConnection = useRef(null);
   const connectionCounts = useRef({});
   const [selectedNode, setSelectedNode] = useState(null);
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
+  // 1. A ref to temporarily store the IDs of nodes that were blocked from deletion in a single action.
+
   const handlePanelClose = () => {
     setSelectedNode(null);
   };
@@ -196,6 +201,43 @@ export default function CanvasPage() {
     };
     loadInitialDiagram();
   }, [setNodes, setEdges]);
+  //deletion logic
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        const nodesToDelete = nodes.filter((node) => node.selected);
+        const edgesToDelete = edges.filter((edge) => edge.selected);
+
+        // --- This is our proven deletion logic, now in the right place ---
+        const nodesToDeleteIds = nodesToDelete.map((n) => n.id);
+        const parentNodeIdsToProtect = nodesToDeleteIds.filter((nodeId) => edges.some((edge) => edge.source === nodeId));
+
+        if (parentNodeIdsToProtect.length > 0) {
+          setNotification({
+            open: true,
+            message: 'Cannot delete a node that has outgoing connections.',
+            severity: 'warning'
+          });
+
+          const finalNodesToDelete = nodesToDelete.filter((node) => !parentNodeIdsToProtect.includes(node.id));
+          const finalEdgesToDelete = edgesToDelete.filter((edge) => !parentNodeIdsToProtect.includes(edge.source));
+
+          setNodes((nds) => nds.filter((n) => !finalNodesToDelete.map((fn) => fn.id).includes(n.id)));
+          setEdges((eds) => eds.filter((e) => !finalEdgesToDelete.map((fe) => fe.id).includes(e.id)));
+        } else {
+          // If no parents are involved, delete everything selected
+          setNodes((nds) => nds.filter((n) => !nodesToDeleteIds.includes(n.id)));
+          setEdges((eds) => eds.filter((e) => !edgesToDelete.map((fe) => fe.id).includes(e.id)));
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [nodes, edges, setNodes, setEdges, setNotification]); // Important: include all dependencies
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
@@ -387,6 +429,13 @@ export default function CanvasPage() {
 
   const toggleSidebar = () => setSidebarVisible((prev) => !prev);
 
+  const handleCloseNotification = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setNotification({ ...notification, open: false });
+  };
+
   const normalStyle = { display: 'flex', height: 'calc(100vh - 64px)', position: 'relative' };
   const focusStyle = { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999, backgroundColor: 'white' };
 
@@ -483,6 +532,7 @@ export default function CanvasPage() {
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
+            deleteKeyCode={null}
             onConnect={onConnect}
             onConnectStart={onConnectStart}
             onConnectEnd={onConnectEnd}
@@ -528,6 +578,17 @@ export default function CanvasPage() {
         </ReactFlowProvider>
       </Box>
       <InspectorPanel node={selectedNode} onStyleChange={handleStyleChange} onClose={handlePanelClose} />
+      {/*change*/}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseNotification} severity={notification.severity} sx={{ width: '100%' }}>
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

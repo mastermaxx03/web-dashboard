@@ -17,7 +17,7 @@ export default function SamplePage() {
         officiate descent molls anim id est labours.
       </Typography> */}
 
-      <MyIndustryFlow />
+      {/* <MyIndustryFlow />  */}
     </MainCard>
   );
 }
