@@ -1,6 +1,6 @@
 import React from 'react';
 import PanelInfoCard from '../../ui-component/rtmlayout/PanelInfoCard'; // We will create this component next
-
+import ThreePhaseVoltage from '../../ui-component/rtmlayout/ThreePhaseVoltage';
 // Define styles for the page container
 const pageStyles = {
   backgroundColor: '#FFFF', // A dark gray background, similar to bg-gray-900
@@ -16,6 +16,7 @@ const RealtimeLayoutPage = () => {
   return (
     <div style={pageStyles}>
       <PanelInfoCard />
+      <ThreePhaseVoltage />
     </div>
   );
 };
